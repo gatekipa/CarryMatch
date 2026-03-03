@@ -518,27 +518,26 @@ export default function PostTrip() {
           <Button
             variant="ghost"
             onClick={() => navigate(-1)}
-            className="mb-6 text-gray-300 hover:text-white hover:bg-white/5"
+            className="mb-6 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
           </Button>
 
-          <Card className="p-8 bg-white/5 border-white/10 backdrop-blur-sm">
-            {/* ... keep all existing form JSX exactly as it was ... */}
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+          <Card className="p-6 sm:p-8 bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 shadow-sm backdrop-blur-sm">
+            <div className="flex items-center gap-4 mb-2">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-sm">
                 <Plane className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-white">{editId ? "Edit Your Trip" : "Post Your Trip"}</h1>
-                <p className="text-gray-400">{editId ? "Update your travel details" : "Share your travel details and earn money"}</p>
+                <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">{editId ? "Edit Your Trip" : "Post Your Trip"}</h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{editId ? "Update your travel details" : "Share your travel details and earn money"}</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 mb-8 p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
-              <Info className="w-5 h-5 text-blue-400 flex-shrink-0" />
-              <p className="text-sm text-blue-300">
+            <div className="flex items-center gap-2 mb-8 p-3 rounded-lg bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30">
+              <Info className="w-5 h-5 text-blue-500 dark:text-blue-400 flex-shrink-0" />
+              <p className="text-sm text-blue-700 dark:text-blue-300">
                 Complete all fields to maximize your matches. Estimated time: 3 minutes
               </p>
             </div>
@@ -547,8 +546,8 @@ export default function PostTrip() {
               {/* Route Information */}
               <div>
                 <div className="flex items-center gap-2 mb-4">
-                  <h2 className="text-xl font-semibold text-white">Route Information</h2>
-                  <Badge className="bg-[#9EFF00]/20 text-[#9EFF00]">Step 1</Badge>
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Route Information</h2>
+                  <Badge className="bg-green-100 text-green-700 dark:bg-[#9EFF00]/20 dark:text-[#9EFF00] text-xs">Step 1</Badge>
                 </div>
                 
                 <div className="grid sm:grid-cols-2 gap-4 mb-4">

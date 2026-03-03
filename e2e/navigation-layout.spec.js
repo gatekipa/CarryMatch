@@ -78,3 +78,56 @@ test.describe('Navigation & Layout (BG-001, BG-009)', () => {
     expect(bodyText.length).toBeGreaterThan(0);
   });
 });
+
+test.describe('Desktop Header — No Overflow', () => {
+  const widths = [1280, 1440, 1920];
+
+  for (const width of widths) {
+    test(`header does not overflow at ${width}px width`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 800 });
+      await page.goto('/');
+      await waitForAppLoad(page);
+
+      const header = page.locator('[data-testid="desktop-header"]');
+      if (await header.isVisible()) {
+        // The header's inner content should not exceed the viewport width
+        const overflow = await header.evaluate(el => {
+          return el.scrollWidth > el.clientWidth;
+        });
+        expect(overflow).toBe(false);
+
+        // Primary nav should be visible
+        const primaryNav = page.locator('[data-testid="primary-nav"]');
+        await expect(primaryNav).toBeVisible();
+
+        // All primary nav links should be visible (not clipped)
+        const navLinks = primaryNav.locator('a');
+        const count = await navLinks.count();
+        expect(count).toBeGreaterThanOrEqual(3); // Home, Browse Trips, Browse Requests at minimum
+        for (let i = 0; i < count; i++) {
+          await expect(navLinks.nth(i)).toBeVisible();
+        }
+      }
+    });
+  }
+
+  test('header right utilities are visible at 1280px', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto('/');
+    await waitForAppLoad(page);
+
+    const headerRight = page.locator('[data-testid="header-right"]');
+    if (await headerRight.isVisible()) {
+      // Theme toggle should be visible
+      const themeBtn = headerRight.locator('button[aria-label*="Switch to"]');
+      await expect(themeBtn).toBeVisible();
+
+      // Sign In button OR user menu trigger should be visible
+      const signIn = headerRight.locator('button:has-text("Sign In")');
+      const userMenu = headerRight.locator('[data-testid="user-menu-trigger"]');
+      const hasSignIn = await signIn.isVisible().catch(() => false);
+      const hasUserMenu = await userMenu.isVisible().catch(() => false);
+      expect(hasSignIn || hasUserMenu).toBe(true);
+    }
+  });
+});

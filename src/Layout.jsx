@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Plane, Package, Home, Menu, X, Globe, LogOut, MessageSquare, User as UserIcon, Bell, Sparkles, Bookmark, Shield, Handshake, Sun, Moon, Activity, Headphones, Truck, FileText, Bus, ArrowLeft } from "lucide-react";
+import { Plane, Package, Home, Menu, X, Globe, LogOut, MessageSquare, User as UserIcon, Bell, Sparkles, Bookmark, Shield, Handshake, Sun, Moon, Activity, Headphones, Truck, FileText, Bus, ArrowLeft, ChevronDown, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { base44 } from "@/api/base44Client";
@@ -13,6 +13,15 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuGroup,
+} from "@/components/ui/dropdown-menu";
 import SavedItemsBackgroundMonitor from "@/components/SavedItemsBackgroundMonitor";
 import { checkAndFlagUsers, updateTrustScores } from "@/components/AutoFlagSystem";
 import WelcomeOnboarding from "@/components/WelcomeOnboarding";
@@ -20,10 +29,10 @@ import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import OfflineDetector from "@/components/OfflineDetector";
 import { usePermissions } from "@/components/permissions/usePermissions";
 import AIChatbot from "@/components/chatbot/AIChatbot";
-      import { ErrorBoundary } from "@/components/ErrorBoundary";
-      import MobileTouchMenu from "@/components/MobileTouchMenu";
-      import MobileHeader from "@/components/mobile/MobileHeader";
-      import { AnimatePresence, motion } from "framer-motion";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import MobileTouchMenu from "@/components/MobileTouchMenu";
+import MobileHeader from "@/components/mobile/MobileHeader";
+import { AnimatePresence, motion } from "framer-motion";
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -304,26 +313,24 @@ export default function Layout({ children, currentPageName }) {
     staleTime: 10 * 60 * 1000
   });
 
-  // Public navigation items (shown to everyone)
-  const publicNavigationItems = [
+  // Primary nav items (always visible in top bar)
+  const primaryNavItems = [
     { name: "Home", path: createPageUrl("Home"), icon: Home },
     { name: "Browse Trips", path: createPageUrl("BrowseTrips"), icon: Plane },
     { name: "Browse Requests", path: createPageUrl("BrowseRequests"), icon: Package },
     { name: "Bus Tickets", path: createPageUrl("BusSearch"), icon: Bus },
   ];
 
-  // Authenticated navigation items (only shown when logged in)
-  const authenticatedNavigationItems = [
+  // "My" items — shown in user dropdown on desktop, inline on mobile
+  const myItems = user ? [
     { name: "My Trips", path: createPageUrl("MyTrips"), icon: Plane },
     { name: "My Requests", path: createPageUrl("MyRequests"), icon: Package },
     { name: "Smart Matches", path: createPageUrl("SmartMatches"), icon: Sparkles },
     { name: "My Matches", path: createPageUrl("MyMatches"), icon: Handshake },
     { name: "Saved Items", path: createPageUrl("SavedItems"), icon: Bookmark },
-    { name: "Messages", path: createPageUrl("Messages"), icon: MessageSquare, badge: unreadMessageCount },
-    { name: "Notifications", path: createPageUrl("Notifications"), icon: Bell, badge: unreadNotificationCount },
-  ];
+  ] : [];
 
-  // Add staff items for users with staff permissions
+  // Admin/staff items — shown in user dropdown on desktop
   const staffItems = permissions.isStaff ? [
     { name: "Admin Dashboard", path: createPageUrl("AdminDashboard"), icon: Shield, requirePermission: 'can_access_admin_dashboard' },
     { name: "Admin Listings", path: createPageUrl("AdminListings"), icon: FileText },
@@ -331,41 +338,69 @@ export default function Layout({ children, currentPageName }) {
     { name: "Verifications", path: createPageUrl("AdminVerifications"), icon: Shield, requirePermission: 'can_verify_users' },
   ].filter(item => !item.requirePermission || permissions.hasPermission(item.requirePermission)) : [];
 
-  // Combine navigation items based on authentication status
-  const allNavigationItems = user
-    ? [...publicNavigationItems, ...authenticatedNavigationItems, ...staffItems]
-    : publicNavigationItems;
+  // Utility items with badges (icon-only in header, full in mobile)
+  const utilityItems = user ? [
+    { name: "Messages", path: createPageUrl("Messages"), icon: MessageSquare, badge: unreadMessageCount },
+    { name: "Notifications", path: createPageUrl("Notifications"), icon: Bell, badge: unreadNotificationCount },
+  ] : [];
 
-  const NavLinks = ({ mobile = false, onClose = () => {} }) => (
-    <>
-      {allNavigationItems.map((item) => (
-        <Link
-          key={item.name}
-          to={item.path}
-          onClick={onClose}
-          className={`${
-            mobile ? 'flex items-center gap-3 px-4 py-3 rounded-lg' : 'flex items-center gap-2 px-4 py-2 rounded-lg'
-          } transition-all duration-200 relative ${
-            location.pathname === item.path
-              ? theme === 'dark'
-                ? 'bg-[#9EFF00]/10 text-[#9EFF00]'
-                : 'bg-[#9EFF00]/20 text-[#1A1A1A]'
-              : theme === 'dark'
-                ? 'text-gray-300 hover:text-white hover:bg-white/5'
-                : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
-          }`}
-        >
-          <item.icon className="w-4 h-4" />
-          <span className="font-medium">{item.name}</span>
-          {item.badge > 0 && (
-            <Badge className="ml-auto bg-[#9EFF00] text-[#1A1A1A] text-xs px-2 py-0.5">
-              {item.badge}
-            </Badge>
-          )}
-        </Link>
-      ))}
-    </>
-  );
+  // All items combined (used for mobile sidebar)
+  const allNavigationItems = user
+    ? [...primaryNavItems, ...myItems, ...utilityItems, ...staffItems]
+    : primaryNavItems;
+
+  // Mobile-only NavLinks (keeps the Sheet sidebar working)
+  const MobileNavLinks = ({ onClose = () => {} }) => {
+    const groups = [
+      { label: null, items: primaryNavItems },
+      ...(myItems.length > 0 ? [{ label: "My Items", items: myItems }] : []),
+      ...(utilityItems.length > 0 ? [{ label: null, items: utilityItems }] : []),
+      ...(staffItems.length > 0 ? [{ label: "Admin", items: staffItems }] : []),
+    ];
+
+    return (
+      <>
+        {groups.map((group, gi) => (
+          <React.Fragment key={gi}>
+            {gi > 0 && (
+              <div className={`my-2 h-px ${theme === 'dark' ? 'bg-white/10' : 'bg-gray-200'}`} />
+            )}
+            {group.label && (
+              <span className={`px-4 py-1 text-xs font-semibold uppercase tracking-wider ${
+                theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
+              }`}>
+                {group.label}
+              </span>
+            )}
+            {group.items.map((item) => (
+              <Link
+                key={item.name}
+                to={item.path}
+                onClick={onClose}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 relative ${
+                  location.pathname === item.path
+                    ? theme === 'dark'
+                      ? 'bg-[#9EFF00]/10 text-[#9EFF00]'
+                      : 'bg-[#9EFF00]/20 text-[#1A1A1A]'
+                    : theme === 'dark'
+                      ? 'text-gray-300 hover:text-white hover:bg-white/5'
+                      : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+                }`}
+              >
+                <item.icon className="w-4 h-4" />
+                <span className="font-medium">{item.name}</span>
+                {item.badge > 0 && (
+                  <Badge className="ml-auto bg-[#9EFF00] text-[#1A1A1A] text-xs px-2 py-0.5">
+                    {item.badge}
+                  </Badge>
+                )}
+              </Link>
+            ))}
+          </React.Fragment>
+        ))}
+      </>
+    );
+  };
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${
@@ -466,106 +501,242 @@ export default function Layout({ children, currentPageName }) {
       `}</style>
 
       {/* Header - Hidden on mobile */}
-      <header className={`hidden md:block fixed top-0 left-0 right-0 z-50 backdrop-blur-xl border-b transition-colors duration-300 ${
-        theme === 'dark'
-          ? 'bg-[#1a1a2e]/90 border-white/10'
-          : 'bg-white/80 border-gray-200'
-      }`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            {/* Logo - ALWAYS CLICKABLE TO HOME */}
-            <Link to={createPageUrl("Home")} className="flex items-center group">
+      <header
+        data-testid="desktop-header"
+        className={`hidden md:block fixed top-0 left-0 right-0 z-50 backdrop-blur-xl border-b transition-colors duration-300 ${
+          theme === 'dark'
+            ? 'bg-[#1a1a2e]/90 border-white/10'
+            : 'bg-white/80 border-gray-200'
+        }`}
+      >
+        <div className="max-w-[1440px] mx-auto px-6 lg:px-8">
+          <div className="flex items-center h-16 gap-8">
+            {/* Left: Logo */}
+            <Link to={createPageUrl("Home")} className="flex-shrink-0 flex items-center group">
               <img
                 src={theme === 'dark'
                   ? 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69099ae0c2ff264b7aca7e74/65b2ef5f6_LogoDark.png'
                   : 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69099ae0c2ff264b7aca7e74/31e7876f4_Logolight.png'
                 }
                 alt="CarryMatch"
-                className="h-10 w-auto transform group-hover:scale-105 transition-transform duration-200"
+                className="h-9 w-auto transform group-hover:scale-105 transition-transform duration-200"
               />
             </Link>
 
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center gap-2">
-              <NavLinks />
-            </nav>
+            {/* Center: Primary Navigation */}
+            <nav data-testid="primary-nav" className="hidden md:flex items-center gap-1" role="navigation" aria-label="Primary navigation">
+              {primaryNavItems.map((item) => (
+                <Link
+                  key={item.name}
+                  to={item.path}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap ${
+                    location.pathname === item.path
+                      ? theme === 'dark'
+                        ? 'bg-[#9EFF00]/10 text-[#9EFF00]'
+                        : 'bg-[#9EFF00]/20 text-[#1A1A1A] font-semibold'
+                      : theme === 'dark'
+                        ? 'text-gray-300 hover:text-white hover:bg-white/5'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`}
+                >
+                  <item.icon className="w-4 h-4" />
+                  <span>{item.name}</span>
+                </Link>
+              ))}
 
-            {/* Right Side */}
-            <div className="flex items-center gap-3">
-              {/* Partner Link - Desktop */}
+              {/* Partner Link */}
               {(!user || isVendorStaff) && (
                 <Link
                   to={createPageUrl("LogisticsPartners")}
-                  className={`hidden md:flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 ${
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap ${
                     theme === 'dark'
                       ? 'text-gray-300 hover:text-white hover:bg-white/5'
-                      : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                   }`}
                 >
                   <Truck className="w-4 h-4" />
-                  <span className="font-medium">For Logistics Partners</span>
+                  <span>Partners</span>
                 </Link>
+              )}
+            </nav>
+
+            {/* Spacer */}
+            <div className="flex-1" />
+
+            {/* Right: Utilities + Account */}
+            <div className="flex items-center gap-2" data-testid="header-right">
+              {/* Utility icons (Messages, Notifications) — only when logged in */}
+              {user && utilityItems.map((item) => (
+                <Link
+                  key={item.name}
+                  to={item.path}
+                  className={`relative flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-200 ${
+                    location.pathname === item.path
+                      ? theme === 'dark'
+                        ? 'bg-[#9EFF00]/10 text-[#9EFF00]'
+                        : 'bg-[#9EFF00]/20 text-[#1A1A1A]'
+                      : theme === 'dark'
+                        ? 'text-gray-400 hover:text-white hover:bg-white/5'
+                        : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
+                  }`}
+                  title={item.name}
+                  aria-label={item.name}
+                >
+                  <item.icon className="w-[18px] h-[18px]" />
+                  {item.badge > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 rounded-full flex items-center justify-center text-white text-[10px] font-bold px-1 ring-2 ring-[#1a1a2e]">
+                      {item.badge > 99 ? '99+' : item.badge}
+                    </span>
+                  )}
+                </Link>
+              ))}
+
+              {/* Subtle divider before theme/account */}
+              {user && (
+                <div className={`w-px h-6 mx-1 ${theme === 'dark' ? 'bg-white/10' : 'bg-gray-200'}`} />
               )}
 
               {/* Theme Toggle */}
               <button
                 onClick={toggleTheme}
-                className={`group relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
+                aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+                className={`group relative w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-300 ${
                   theme === 'dark'
-                    ? 'bg-white/10 hover:bg-white/20 active:scale-95'
-                    : 'bg-gray-900/10 hover:bg-gray-900/20 active:scale-95'
+                    ? 'text-gray-400 hover:text-yellow-400 hover:bg-white/5 active:scale-95'
+                    : 'text-gray-500 hover:text-indigo-600 hover:bg-gray-100 active:scale-95'
                 }`}
               >
                 {theme === 'dark' ? (
-                  <Sun className="w-5 h-5 text-yellow-400 group-hover:rotate-12 transition-transform duration-300" />
+                  <Sun className="w-[18px] h-[18px] group-hover:rotate-12 transition-transform duration-300" />
                 ) : (
-                  <Moon className="w-5 h-5 text-indigo-600 group-hover:-rotate-12 transition-transform duration-300" />
+                  <Moon className="w-[18px] h-[18px] group-hover:-rotate-12 transition-transform duration-300" />
                 )}
               </button>
 
               {user ? (
-                <>
-                  {/* Desktop User Profile */}
-                  <Link
-                    to={createPageUrl("UserProfile", `email=${user.email}`)}
-                    className={`hidden md:flex items-center gap-3 px-4 py-2 rounded-full transition-all duration-300 group ${
-                      theme === 'dark'
-                        ? 'bg-white/5 hover:bg-white/10 active:scale-98'
-                        : 'bg-gray-900/5 hover:bg-gray-900/10 active:scale-98'
-                    }`}
-                  >
-                    <div className="relative">
-                      <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center ring-2 ring-white/20 group-hover:ring-white/40 transition-all">
-                        <span className="text-white text-sm font-semibold">
-                          {user.full_name?.[0]?.toUpperCase() || user.email[0].toUpperCase()}
-                        </span>
+                /* ── Avatar Dropdown ── */
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      data-testid="user-menu-trigger"
+                      className={`flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full transition-all duration-200 group outline-none focus-visible:ring-2 focus-visible:ring-[#9EFF00]/50 ${
+                        theme === 'dark'
+                          ? 'hover:bg-white/5 active:bg-white/10'
+                          : 'hover:bg-gray-100 active:bg-gray-200'
+                      }`}
+                      aria-label="Account menu"
+                    >
+                      <div className="relative">
+                        <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center ring-2 ring-transparent group-hover:ring-white/20 transition-all">
+                          <span className="text-white text-sm font-semibold">
+                            {user.full_name?.[0]?.toUpperCase() || user.email[0].toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-[#1a1a2e]" />
                       </div>
-                      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-[#1a1a2e]" />
-                    </div>
-                    <span className={`text-sm font-medium ${
-                      theme === 'dark' ? 'text-gray-200' : 'text-gray-900'
-                    }`}>
-                      {user.full_name || user.email}
-                    </span>
-                  </Link>
+                      <ChevronDown className={`w-3.5 h-3.5 transition-transform group-data-[state=open]:rotate-180 ${
+                        theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                      }`} />
+                    </button>
+                  </DropdownMenuTrigger>
 
-                  {/* Desktop Sign Out Button */}
-                  <button
-                    onClick={() => base44.auth.logout()}
-                    className={`hidden md:flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300 group active:scale-95 ${
+                  <DropdownMenuContent
+                    align="end"
+                    sideOffset={8}
+                    className={`w-64 p-1 ${
                       theme === 'dark'
-                        ? 'bg-white/5 hover:bg-red-500/20 text-gray-400 hover:text-red-400'
-                        : 'bg-gray-900/5 hover:bg-red-500/20 text-gray-600 hover:text-red-600'
+                        ? 'bg-[#1a1a2e] border-white/10'
+                        : 'bg-white border-gray-200'
                     }`}
-                    title="Sign Out"
                   >
-                    <LogOut className="w-4 h-4 group-hover:scale-110 transition-transform duration-200" />
-                  </button>
-                </>
+                    {/* User identity */}
+                    <div className={`px-3 py-2.5 mb-1 rounded-md ${
+                      theme === 'dark' ? 'bg-white/5' : 'bg-gray-50'
+                    }`}>
+                      <p className={`text-sm font-semibold truncate ${
+                        theme === 'dark' ? 'text-white' : 'text-gray-900'
+                      }`}>
+                        {user.full_name || 'User'}
+                      </p>
+                      <p className={`text-xs truncate ${
+                        theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                      }`}>
+                        {user.email}
+                      </p>
+                    </div>
+
+                    {/* Profile link */}
+                    <DropdownMenuItem asChild className="cursor-pointer">
+                      <Link to={createPageUrl("UserProfile", `email=${user.email}`)} className="flex items-center gap-2">
+                        <UserIcon className="w-4 h-4" />
+                        <span>Profile</span>
+                      </Link>
+                    </DropdownMenuItem>
+
+                    {/* My Items group */}
+                    {myItems.length > 0 && (
+                      <>
+                        <DropdownMenuSeparator className={theme === 'dark' ? 'bg-white/10' : ''} />
+                        <DropdownMenuLabel className={`text-xs uppercase tracking-wider ${
+                          theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
+                        }`}>
+                          My Items
+                        </DropdownMenuLabel>
+                        <DropdownMenuGroup>
+                          {myItems.map((item) => (
+                            <DropdownMenuItem key={item.name} asChild className="cursor-pointer">
+                              <Link to={item.path} className="flex items-center gap-2">
+                                <item.icon className="w-4 h-4" />
+                                <span>{item.name}</span>
+                              </Link>
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuGroup>
+                      </>
+                    )}
+
+                    {/* Admin group */}
+                    {staffItems.length > 0 && (
+                      <>
+                        <DropdownMenuSeparator className={theme === 'dark' ? 'bg-white/10' : ''} />
+                        <DropdownMenuLabel className={`text-xs uppercase tracking-wider ${
+                          theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
+                        }`}>
+                          Admin
+                        </DropdownMenuLabel>
+                        <DropdownMenuGroup>
+                          {staffItems.map((item) => (
+                            <DropdownMenuItem key={item.name} asChild className="cursor-pointer">
+                              <Link to={item.path} className="flex items-center gap-2">
+                                <item.icon className="w-4 h-4" />
+                                <span>{item.name}</span>
+                              </Link>
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuGroup>
+                      </>
+                    )}
+
+                    {/* Logout */}
+                    <DropdownMenuSeparator className={theme === 'dark' ? 'bg-white/10' : ''} />
+                    <DropdownMenuItem
+                      data-testid="logout-button"
+                      onClick={() => base44.auth.logout()}
+                      className={`cursor-pointer ${
+                        theme === 'dark'
+                          ? 'text-red-400 focus:text-red-300 focus:bg-red-500/10'
+                          : 'text-red-600 focus:text-red-700 focus:bg-red-50'
+                      }`}
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Sign Out</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               ) : (
                 <button
                   onClick={() => base44.auth.redirectToLogin()}
-                  className={`hidden md:flex items-center gap-2 px-6 py-2.5 rounded-full font-semibold text-sm transition-all duration-300 active:scale-95 shadow-lg ${
+                  className={`flex items-center gap-2 px-5 py-2 rounded-full font-semibold text-sm transition-all duration-300 active:scale-95 shadow-lg ${
                     theme === 'dark'
                       ? 'bg-white text-gray-900 hover:bg-gray-100 shadow-white/10 hover:shadow-white/20'
                       : 'bg-gray-900 text-white hover:bg-gray-800 shadow-gray-900/20 hover:shadow-gray-900/40'
@@ -575,135 +746,12 @@ export default function Layout({ children, currentPageName }) {
                   Sign In
                 </button>
               )}
-
-              {/* Mobile Menu */}
-              <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-                <SheetTrigger asChild className="md:hidden">
-                  <button className={`relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 active:scale-95 ${
-                    theme === 'dark'
-                      ? 'bg-white/10 hover:bg-white/20'
-                      : 'bg-gray-900/10 hover:bg-gray-900/20'
-                  }`}>
-                    <Menu className="w-5 h-5" />
-                    {(unreadMessageCount > 0 || unreadNotificationCount > 0) && (
-                      <div className="absolute -top-1 -right-1 min-w-[1.25rem] h-5 bg-red-500 rounded-full flex items-center justify-center border-2 border-[#1a1a2e]">
-                        <span className="text-white text-xs font-bold px-1">
-                          {unreadMessageCount + unreadNotificationCount}
-                        </span>
-                      </div>
-                    )}
-                  </button>
-                </SheetTrigger>
-                <SheetContent side="right" className={`w-72 ${
-                  theme === 'dark'
-                    ? 'bg-[#0F1D35] border-white/10'
-                    : 'bg-white border-gray-200'
-                }`}>
-                  <SheetTitle className="hidden">Mobile Menu</SheetTitle>
-                  <SheetDescription className="hidden">Navigation menu</SheetDescription>
-                  <div className="flex flex-col h-full">
-                    <div className="flex items-center justify-between mb-8">
-                      <div className="flex items-center gap-2">
-                        <img
-                          src={theme === 'dark'
-                            ? 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69099ae0c2ff264b7aca7e74/65b2ef5f6_LogoDark.png'
-                            : 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69099ae0c2ff264b7aca7e74/31e7876f4_Logolight.png'
-                          }
-                          alt="CarryMatch"
-                          className="h-8 w-auto"
-                        />
-                      </div>
-                    </div>
-
-                    <nav className="flex flex-col gap-2 mb-8">
-                      <NavLinks mobile={true} onClose={() => setMobileMenuOpen(false)} />
-                      
-                      {(!user || isVendorStaff) && (
-                        <Link
-                          to={createPageUrl("LogisticsPartners")}
-                          onClick={() => setMobileMenuOpen(false)}
-                          className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
-                            theme === 'dark'
-                              ? 'text-gray-300 hover:text-white hover:bg-white/5'
-                              : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
-                          }`}
-                        >
-                          <Truck className="w-4 h-4" />
-                          <span className="font-medium">For Logistics Partners</span>
-                        </Link>
-                      )}
-                    </nav>
-
-                    {user && (
-                      <div className={`mt-auto pt-6 border-t ${
-                        theme === 'dark' ? 'border-white/10' : 'border-gray-200'
-                      }`}>
-                        <Link
-                          to={createPageUrl("UserProfile", `email=${user.email}`)}
-                          onClick={() => setMobileMenuOpen(false)}
-                          className={`flex items-center gap-3 px-4 py-3 rounded-xl mb-3 transition-all active:scale-98 ${
-                            theme === 'dark'
-                              ? 'bg-white/5 hover:bg-white/10'
-                              : 'bg-gray-100 hover:bg-gray-200'
-                          }`}
-                        >
-                          <div className="relative">
-                            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                              <span className="text-white font-semibold">
-                                {user.full_name?.[0]?.toUpperCase() || user.email[0].toUpperCase()}
-                              </span>
-                            </div>
-                            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-[#0F1D35]" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className={`text-sm font-semibold truncate ${
-                              theme === 'dark' ? 'text-white' : 'text-gray-900'
-                            }`}>
-                              {user.full_name || 'User'}
-                            </p>
-                            <p className={`text-xs truncate ${
-                              theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                            }`}>
-                              {user.email}
-                            </p>
-                          </div>
-                        </Link>
-                        <button
-                          onClick={() => base44.auth.logout()}
-                          className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold transition-all active:scale-98 ${
-                            theme === 'dark'
-                              ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300'
-                              : 'bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700'
-                          }`}
-                        >
-                          <LogOut className="w-4 h-4" />
-                          Sign Out
-                        </button>
-                      </div>
-                    )}
-
-                    {!user && (
-                      <div className="mt-auto">
-                        <button
-                          onClick={() => base44.auth.redirectToLogin()}
-                          className={`w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-semibold transition-all active:scale-98 shadow-lg ${
-                            theme === 'dark'
-                              ? 'bg-white text-gray-900 hover:bg-gray-100 shadow-white/10'
-                              : 'bg-gray-900 text-white hover:bg-gray-800 shadow-gray-900/20'
-                          }`}
-                        >
-                          <UserIcon className="w-5 h-5" />
-                          Sign In
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </SheetContent>
-              </Sheet>
             </div>
           </div>
         </div>
       </header>
+
+      {/* Mobile Sheet Menu — no visible trigger; mobile nav is handled by MobileHeader + MobileTouchMenu bottom bar */}
 
       {/* Main Content */}
       <main className="min-h-[calc(100vh-4rem)] md:min-h-[calc(100vh-4rem)] md:mt-16 pb-20 md:pb-0">

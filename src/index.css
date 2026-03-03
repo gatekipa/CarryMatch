@@ -154,5 +154,45 @@ button:focus-visible {
   }
   body {
     @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* ── Enterprise UI polish utilities ── */
+@layer components {
+  /* Consistent page title hierarchy */
+  .page-title {
+    @apply text-2xl font-bold tracking-tight text-gray-900 dark:text-white;
+  }
+  .page-subtitle {
+    @apply text-sm text-gray-500 dark:text-gray-400 mt-1;
+  }
+  .section-title {
+    @apply text-base font-semibold text-gray-900 dark:text-white;
+  }
+
+  /* Consistent surface card (for pages that hardcode bg-white/5) */
+  .surface-card {
+    @apply bg-white dark:bg-white/5 border-gray-200 dark:border-white/10;
+  }
+
+  /* Table polish */
+  .table-header-cell {
+    @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400;
+  }
+  .table-body-cell {
+    @apply px-4 py-3.5 text-sm text-gray-700 dark:text-gray-300;
+  }
+  .table-row-hover {
+    @apply hover:bg-gray-50 dark:hover:bg-white/5 transition-colors;
+  }
+
+  /* Form input consistency */
+  .form-label {
+    @apply text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block;
+  }
+  .form-helper {
+    @apply text-xs text-gray-400 dark:text-gray-500 mt-1;
   }
 }

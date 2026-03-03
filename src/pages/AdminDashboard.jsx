@@ -788,14 +788,15 @@ export default function AdminDashboard() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
+          {/* Page Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h1 className="text-4xl font-bold text-white mb-2">
+              <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
                 {permissions.isAdmin ? 'Admin' : permissions.isModerator ? 'Moderator' : 'Support'} Dashboard
               </h1>
-              <p className="text-gray-400">Manage users, transactions, and platform operations</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Manage users, transactions, and platform operations</p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-2">
               <Button
                 onClick={() => {
                   refetchUsers();
@@ -807,14 +808,15 @@ export default function AdminDashboard() {
                   toast.success("Dashboard refreshed");
                 }}
                 variant="outline"
-                className="border-white/10 text-gray-300 hover:text-white"
+                size="sm"
+                className="border-gray-300 dark:border-white/10 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Refresh
               </Button>
               {permissions.hasPermission('can_view_analytics') && (
                 <Link to={createPageUrl("AdminAnalytics")}>
-                  <Button className="bg-blue-500 hover:bg-blue-600">
+                  <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
                     <TrendingUp className="w-4 h-4 mr-2" />
                     Analytics
                   </Button>
@@ -823,55 +825,67 @@ export default function AdminDashboard() {
             </div>
           </div>
 
+          {/* Stat Cards Grid */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-            <Card className="p-6 bg-white/5 border-white/10">
-              <div className="flex items-center justify-between mb-2">
-                <Users className="w-8 h-8 text-blue-400" />
-                <Badge className="bg-blue-500/20 text-blue-400">Users</Badge>
+            <Card className="p-5 bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                  <Users className="w-[18px] h-[18px] text-blue-500 dark:text-blue-400" />
+                </div>
+                <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400 text-[10px] font-semibold">Users</Badge>
               </div>
-              <div className="text-3xl font-bold text-white mb-1">{analytics.totalUsers}</div>
-              <div className="text-sm text-gray-400">{analytics.verifiedUsers} verified</div>
+              <div className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">{analytics.totalUsers}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{analytics.verifiedUsers} verified</div>
             </Card>
 
-            <Card className="p-6 bg-white/5 border-white/10">
-              <div className="flex items-center justify-between mb-2">
-                <Plane className="w-8 h-8 text-purple-400" />
-                <Badge className="bg-purple-500/20 text-purple-400">Trips</Badge>
+            <Card className="p-5 bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-9 h-9 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                  <Plane className="w-[18px] h-[18px] text-purple-500 dark:text-purple-400" />
+                </div>
+                <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400 text-[10px] font-semibold">Trips</Badge>
               </div>
-              <div className="text-3xl font-bold text-white mb-1">{analytics.activeTrips}</div>
-              <div className="text-sm text-gray-400">active now</div>
+              <div className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">{analytics.activeTrips}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">active now</div>
             </Card>
 
-            <Card className="p-6 bg-white/5 border-white/10">
-              <div className="flex items-center justify-between mb-2">
-                <Package className="w-8 h-8 text-green-400" />
-                <Badge className="bg-green-500/20 text-green-400">Requests</Badge>
+            <Card className="p-5 bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-9 h-9 rounded-lg bg-green-500/10 flex items-center justify-center">
+                  <Package className="w-[18px] h-[18px] text-green-600 dark:text-green-400" />
+                </div>
+                <Badge className="bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400 text-[10px] font-semibold">Requests</Badge>
               </div>
-              <div className="text-3xl font-bold text-white mb-1">{analytics.activeRequests}</div>
-              <div className="text-sm text-gray-400">active now</div>
+              <div className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">{analytics.activeRequests}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">active now</div>
             </Card>
 
-            <Card className="p-6 bg-white/5 border-white/10">
-              <div className="flex items-center justify-between mb-2">
-                <AlertTriangle className="w-8 h-8 text-yellow-400" />
-                <Badge className="bg-yellow-500/20 text-yellow-400">Disputes</Badge>
+            <Card className="p-5 bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-9 h-9 rounded-lg bg-yellow-500/10 flex items-center justify-center">
+                  <AlertTriangle className="w-[18px] h-[18px] text-yellow-600 dark:text-yellow-400" />
+                </div>
+                <Badge className="bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-400 text-[10px] font-semibold">Disputes</Badge>
               </div>
-              <div className="text-3xl font-bold text-white mb-1">{analytics.openDisputes}</div>
-              <div className="text-sm text-gray-400">need attention</div>
+              <div className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">{analytics.openDisputes}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">need attention</div>
             </Card>
 
-            <Card className="p-6 bg-white/5 border-white/10">
-              <div className="flex items-center justify-between mb-2">
-                <DollarSign className="w-8 h-8 text-[#9EFF00]" />
-                <Badge className="bg-[#9EFF00]/20 text-[#9EFF00]">Revenue</Badge>
+            <Card className="p-5 bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-9 h-9 rounded-lg bg-[#9EFF00]/10 flex items-center justify-center">
+                  <DollarSign className="w-[18px] h-[18px] text-green-600 dark:text-[#9EFF00]" />
+                </div>
+                <Badge className="bg-green-100 text-green-700 dark:bg-[#9EFF00]/20 dark:text-[#9EFF00] text-[10px] font-semibold">Revenue</Badge>
               </div>
-              <div className="text-3xl font-bold text-white mb-1">${analytics.totalRevenue}</div>
-              <div className="text-sm text-gray-400">{allMatches.filter(m => m.match_fee_paid).length} paid matches</div>
+              <div className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">${analytics.totalRevenue}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{allMatches.filter(m => m.match_fee_paid).length} paid matches</div>
             </Card>
           </div>
 
+          {/* Tabs Section */}
           <Tabs defaultValue="users" className="w-full">
-            <TabsList className="bg-white/5 border-white/10 mb-6">
+            <TabsList className="bg-gray-100 dark:bg-white/5 border-gray-200 dark:border-white/10 mb-6">
               {permissions.hasPermission('can_manage_users') && (
                 <TabsTrigger value="users">
                   <Users className="w-4 h-4 mr-2" />
