@@ -30,7 +30,7 @@ export class ErrorBoundary extends React.Component {
             <p className="text-gray-400 mb-6">
               {this.props.fallbackMessage || "An unexpected error occurred. Please try refreshing the page."}
             </p>
-            {this.state.error?.message && (
+            {this.state.error?.message && import.meta.env.DEV && (
               <div className="mb-6 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
                 <p className="text-xs text-red-400 font-mono break-words">
                   {this.state.error.message}

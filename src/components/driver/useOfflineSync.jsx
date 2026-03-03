@@ -79,9 +79,6 @@ export function useOfflineSync() {
     localStorage.setItem('driver-pending-sync', JSON.stringify(remaining));
     setIsSyncing(false);
 
-    if (synced.length > 0) {
-      console.log(`Synced ${synced.length} items`);
-    }
   };
 
   return {

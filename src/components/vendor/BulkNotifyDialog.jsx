@@ -43,9 +43,6 @@ export default function BulkNotifyDialog({ batch, shipments, vendor, onClose }) 
       }
 
       // Here you would integrate with your actual notification service
-      // For now, just log
-      console.log("Sending notifications:", notifications);
-      
       return notifications.length;
     },
     onSuccess: (count) => {

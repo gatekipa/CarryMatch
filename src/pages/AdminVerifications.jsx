@@ -50,14 +50,13 @@ export default function AdminVerifications() {
   useEffect(() => {
     base44.auth.me().then(userData => {
       setUser(userData);
-      const userPermissions = userData?.role === 'admin' ? { hasPermission: () => true } : usePermissions(userData);
-      if (!userData || !userPermissions.hasPermission('can_verify_users')) {
+      if (!userData || (userData.role !== 'admin' && !permissions.hasPermission('can_verify_users'))) {
         navigate(createPageUrl("Home"));
       }
     }).catch(() => {
       navigate(createPageUrl("Home"));
     });
-  }, [navigate]);
+  }, [navigate, permissions]);
 
   // Fetch identity verifications
    const { data: identityVerifications = [], isLoading: identityLoading } = useQuery({

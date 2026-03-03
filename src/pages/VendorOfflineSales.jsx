@@ -318,6 +318,13 @@ export default function VendorOfflineSales() {
     return templates.find(t => t.id === vehicle.seat_map_template_id);
   };
 
+  // Require session for agents (must be before early returns per React hooks rules)
+  useEffect(() => {
+    if (permissions.isAgent && !agentSession.hasActiveSession && !showStartSessionDialog) {
+      setShowStartSessionDialog(true);
+    }
+  }, [permissions.isAgent, agentSession.hasActiveSession]);
+
   if (authChecked && !user) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
@@ -344,13 +351,6 @@ export default function VendorOfflineSales() {
   }
 
   const template = getSelectedTemplate();
-
-  // Require session for agents
-  useEffect(() => {
-    if (permissions.isAgent && !agentSession.hasActiveSession && !showStartSessionDialog) {
-      setShowStartSessionDialog(true);
-    }
-  }, [permissions.isAgent, agentSession.hasActiveSession]);
 
   if (agentSession.isLocked) {
     return <AgentLockScreen onUnlock={agentSession.unlock} />;

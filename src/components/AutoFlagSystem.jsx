@@ -68,7 +68,6 @@ export const checkAndFlagUsers = async () => {
           related_entity_type: "user"
         });
         
-        console.log(`Auto-flagged user: ${user.email} - ${flagReason}`);
       }
     }
   } catch (error) {

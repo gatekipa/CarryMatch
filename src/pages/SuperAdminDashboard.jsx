@@ -19,7 +19,7 @@ import {
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 
-const ADMIN_EMAILS = ["janyere101@gmail.com"]; // Platform admin whitelist
+// Admin access is determined by server-side role assignment (user.role === "admin")
 
 export default function SuperAdminDashboard() {
   const queryClient = useQueryClient();
@@ -35,7 +35,7 @@ export default function SuperAdminDashboard() {
   useEffect(() => {
     base44.auth.me().then(u => {
       setUser(u);
-      setIsAuthorized(ADMIN_EMAILS.includes(u.email) || u.role === "admin");
+      setIsAuthorized(u.role === "admin");
     }).catch(() => setIsAuthorized(false));
   }, []);
 

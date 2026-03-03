@@ -63,7 +63,26 @@ export const AuthProvider = ({ children }) => {
   const logout = (shouldRedirect = true) => {
     setUser(null);
     setIsAuthenticated(false);
-    
+
+    // Clear cached user data from localStorage
+    try {
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (
+          key.startsWith('carrymatch-') ||
+          key.startsWith('offline-') ||
+          key.startsWith('pending-sync') ||
+          key.startsWith('driver-')
+        )) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+    } catch (e) {
+      // localStorage may be unavailable
+    }
+
     if (shouldRedirect) {
       base44.auth.logout(window.location.href);
     } else {

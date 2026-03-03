@@ -155,7 +155,7 @@ export default function VendorStaffManagement() {
         const plans = await base44.entities.SubscriptionPlan.filter({ name: planName });
         const plan = plans[0] || { STARTER: { included_staff_seats: 2 }, GROWTH: { included_staff_seats: 5 }, PRO: { included_staff_seats: 15 }, ENTERPRISE: { included_staff_seats: 999 } }[planName];
         if (plan) {
-          const activeStaff = staff.filter(s => s.status === "ACTIVE").length;
+          const activeStaff = staffMembers.filter(s => s.status === "ACTIVE").length;
           if (activeStaff >= (plan.included_staff_seats || 2)) {
             toast.error(`Staff seat limit reached (${plan.included_staff_seats} on ${planName} plan). Upgrade your plan to add more staff.`);
             return;

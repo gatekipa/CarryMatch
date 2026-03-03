@@ -59,7 +59,7 @@ export default function BrowseRequests() {
     base44.auth.me().then(setUser).catch(() => setUser(null));
   }, []);
 
-  const { data: requests = [], isLoading } = useQuery({
+  const { data: requests = [], isLoading, refetch } = useQuery({
     queryKey: ['shipment-requests'],
     queryFn: async () => {
       const allRequests = await base44.entities.ShipmentRequest.filter({ status: "active" }, "-needed_by_date");

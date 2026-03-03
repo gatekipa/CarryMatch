@@ -35,7 +35,6 @@ export default function AirportAutocomplete({
     
     if (newQuery.length >= 2) {
       const results = searchAirports(newQuery);
-      console.log("Search results:", results); // Debug log
       setSuggestions(results);
       setShowSuggestions(true);
       setSelectedIndex(-1);
