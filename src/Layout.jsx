@@ -332,8 +332,9 @@ export default function Layout({ children, currentPageName }) {
 
   // Admin/staff items — shown in user dropdown on desktop
   const staffItems = permissions.isStaff ? [
+    { name: "Super Admin", path: createPageUrl("SuperAdminDashboard"), icon: Shield, requirePermission: 'can_access_admin_dashboard' },
     { name: "Admin Dashboard", path: createPageUrl("AdminDashboard"), icon: Shield, requirePermission: 'can_access_admin_dashboard' },
-    { name: "Admin Listings", path: createPageUrl("AdminListings"), icon: FileText },
+    { name: "Admin Listings", path: createPageUrl("AdminListings"), icon: FileText, requirePermission: 'can_moderate_content' },
     { name: "Analytics", path: createPageUrl("AdminAnalytics"), icon: Activity, requirePermission: 'can_view_analytics' },
     { name: "Verifications", path: createPageUrl("AdminVerifications"), icon: Shield, requirePermission: 'can_verify_users' },
   ].filter(item => !item.requirePermission || permissions.hasPermission(item.requirePermission)) : [];
