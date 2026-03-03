@@ -1,0 +1,114 @@
+{
+  "name": "TripStatusUpdate",
+  "type": "object",
+  "properties": {
+    "trip_id": {
+      "type": "string",
+      "description": "Reference to Trip"
+    },
+    "update_type": {
+      "type": "string",
+      "enum": [
+        "boarding_open",
+        "departed",
+        "delayed",
+        "rest_stop",
+        "arriving_soon",
+        "arrived"
+      ],
+      "description": "Type of status update"
+    },
+    "message": {
+      "type": "string",
+      "description": "Status update message"
+    },
+    "delay_minutes": {
+      "type": "number",
+      "description": "Delay in minutes (for delayed status)"
+    },
+    "new_eta": {
+      "type": "string",
+      "format": "date-time",
+      "description": "New estimated arrival time"
+    },
+    "updated_by_user": {
+      "type": "string",
+      "description": "Staff/driver who made update"
+    },
+    "notifications_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether passengers were notified"
+    }
+  },
+  "required": [
+    "trip_id",
+    "update_type"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "trip_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "Order",
+                  "filter": {
+                    "user_id": "{{user.email}}",
+                    "order_status": "paid"
+                  },
+                  "field": "trip_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "trip_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "Trip",
+                  "filter": {
+                    "operator_id": {
+                      "$in": [
+                        {
+                          "$query": {
+                            "entity": "OperatorStaff",
+                            "filter": {
+                              "user_id": "{{user.email}}",
+                              "status": "active"
+                            },
+                            "field": "operator_id"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "field": "id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

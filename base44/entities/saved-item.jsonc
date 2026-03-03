@@ -1,0 +1,87 @@
+{
+  "name": "SavedItem",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "description": "Email of user who saved the item"
+    },
+    "item_type": {
+      "type": "string",
+      "enum": [
+        "trip",
+        "request"
+      ],
+      "description": "Type of saved item"
+    },
+    "item_id": {
+      "type": "string",
+      "description": "ID of the saved trip or request"
+    },
+    "item_data": {
+      "type": "object",
+      "description": "Snapshot of item data at time of saving"
+    },
+    "notes": {
+      "type": "string",
+      "description": "User's private notes about this item"
+    },
+    "notify_on_update": {
+      "type": "boolean",
+      "default": true,
+      "description": "Notify when item is updated"
+    },
+    "last_price": {
+      "type": "number",
+      "description": "Last known price for change detection"
+    },
+    "last_date": {
+      "type": "string",
+      "description": "Last known date for change detection"
+    }
+  },
+  "required": [
+    "user_email",
+    "item_type",
+    "item_id"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "user_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

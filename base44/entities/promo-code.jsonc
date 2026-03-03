@@ -1,0 +1,136 @@
+{
+  "name": "PromoCode",
+  "type": "object",
+  "properties": {
+    "operator_id": {
+      "type": "string",
+      "description": "Reference to BusOperator"
+    },
+    "code": {
+      "type": "string",
+      "description": "Promo code (uppercase, unique per operator)"
+    },
+    "discount_type": {
+      "type": "string",
+      "enum": [
+        "percentage",
+        "fixed"
+      ],
+      "default": "percentage",
+      "description": "Type of discount"
+    },
+    "discount_value": {
+      "type": "number",
+      "description": "Discount amount (percentage or XAF)"
+    },
+    "valid_from": {
+      "type": "string",
+      "format": "date",
+      "description": "Start date (optional)"
+    },
+    "valid_until": {
+      "type": "string",
+      "format": "date",
+      "description": "End date (optional)"
+    },
+    "max_uses": {
+      "type": "number",
+      "description": "Maximum total uses (optional)"
+    },
+    "current_uses": {
+      "type": "number",
+      "default": 0,
+      "description": "Current usage count"
+    },
+    "usage_limit_per_user": {
+      "type": "number",
+      "description": "Max uses per user (optional)"
+    },
+    "applicable_routes_json": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Route IDs this promo applies to (empty = all routes)"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether promo is active"
+    }
+  },
+  "required": [
+    "operator_id",
+    "code",
+    "discount_type",
+    "discount_value"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "operator_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "OperatorStaff",
+                  "filter": {
+                    "email": "{{user.email}}",
+                    "status": "active"
+                  },
+                  "field": "vendor_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "is_active": true
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "operator_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "OperatorStaff",
+                  "filter": {
+                    "email": "{{user.email}}",
+                    "status": "active",
+                    "role": {
+                      "$in": [
+                        "OWNER",
+                        "MANAGER"
+                      ]
+                    }
+                  },
+                  "field": "vendor_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

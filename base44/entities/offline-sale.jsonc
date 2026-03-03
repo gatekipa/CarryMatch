@@ -1,0 +1,121 @@
+{
+  "name": "OfflineSale",
+  "type": "object",
+  "properties": {
+    "operator_id": {
+      "type": "string",
+      "description": "Reference to BusOperator"
+    },
+    "trip_id": {
+      "type": "string",
+      "description": "Reference to Trip"
+    },
+    "sold_by_user_id": {
+      "type": "string",
+      "description": "Staff user who made the sale"
+    },
+    "passenger_name": {
+      "type": "string",
+      "description": "Passenger name"
+    },
+    "passenger_phone": {
+      "type": "string",
+      "description": "Passenger phone"
+    },
+    "seat_code": {
+      "type": "string",
+      "description": "Seat identifier"
+    },
+    "sale_price_xaf": {
+      "type": "number",
+      "description": "Sale price in XAF"
+    },
+    "payment_method": {
+      "type": "string",
+      "enum": [
+        "cash",
+        "momo",
+        "orange",
+        "other"
+      ],
+      "description": "Payment method"
+    },
+    "receipt_number_optional": {
+      "type": "string",
+      "description": "Optional receipt number"
+    }
+  },
+  "required": [
+    "operator_id",
+    "trip_id",
+    "sold_by_user_id",
+    "passenger_name",
+    "seat_code",
+    "sale_price_xaf",
+    "payment_method"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "operator_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "OperatorStaff",
+                  "filter": {
+                    "email": "{{user.email}}",
+                    "status": "active"
+                  },
+                  "field": "vendor_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "operator_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "OperatorStaff",
+                  "filter": {
+                    "email": "{{user.email}}",
+                    "status": "active",
+                    "role": {
+                      "$in": [
+                        "OWNER",
+                        "MANAGER"
+                      ]
+                    }
+                  },
+                  "field": "vendor_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

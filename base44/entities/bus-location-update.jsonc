@@ -1,0 +1,111 @@
+{
+  "name": "BusLocationUpdate",
+  "type": "object",
+  "properties": {
+    "trip_id": {
+      "type": "string",
+      "description": "Reference to Trip"
+    },
+    "latitude": {
+      "type": "number",
+      "description": "GPS latitude"
+    },
+    "longitude": {
+      "type": "number",
+      "description": "GPS longitude"
+    },
+    "speed_kmh": {
+      "type": "number",
+      "description": "Current speed in km/h"
+    },
+    "heading_degrees": {
+      "type": "number",
+      "description": "Direction heading (0-360)"
+    },
+    "update_source": {
+      "type": "string",
+      "enum": [
+        "driver_manual",
+        "driver_gps",
+        "system"
+      ],
+      "description": "How location was updated"
+    },
+    "updated_by_user": {
+      "type": "string",
+      "description": "User who updated location"
+    }
+  },
+  "required": [
+    "trip_id",
+    "latitude",
+    "longitude",
+    "update_source"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "trip_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "Order",
+                  "filter": {
+                    "user_id": "{{user.email}}",
+                    "order_status": "paid"
+                  },
+                  "field": "trip_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "trip_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "Trip",
+                  "filter": {
+                    "operator_id": {
+                      "$in": [
+                        {
+                          "$query": {
+                            "entity": "OperatorStaff",
+                            "filter": {
+                              "user_id": "{{user.email}}",
+                              "status": "active"
+                            },
+                            "field": "operator_id"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "field": "id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

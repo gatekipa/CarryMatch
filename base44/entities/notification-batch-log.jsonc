@@ -1,0 +1,92 @@
+{
+  "name": "NotificationBatchLog",
+  "type": "object",
+  "properties": {
+    "operator_id": {
+      "type": "string",
+      "description": "Reference to BusOperator"
+    },
+    "trip_id": {
+      "type": "string",
+      "description": "Reference to Trip"
+    },
+    "batch_type": {
+      "type": "string",
+      "enum": [
+        "reminder",
+        "last_call",
+        "delay",
+        "cancel",
+        "manual",
+        "boarding_open"
+      ],
+      "description": "Type of notification batch"
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "email",
+        "sms",
+        "whatsapp"
+      ],
+      "description": "Notification channel used"
+    },
+    "recipients_count": {
+      "type": "number",
+      "description": "Number of recipients"
+    },
+    "message_preview": {
+      "type": "string",
+      "description": "Preview of message sent"
+    },
+    "created_by_user_id": {
+      "type": "string",
+      "description": "Staff who sent (nullable for automated)"
+    }
+  },
+  "required": [
+    "operator_id",
+    "trip_id",
+    "batch_type",
+    "channel",
+    "recipients_count"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "operator_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "OperatorStaff",
+                  "filter": {
+                    "user_id": "{{user.email}}",
+                    "status": "active"
+                  },
+                  "field": "operator_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

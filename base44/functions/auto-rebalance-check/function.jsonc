@@ -1,0 +1,4 @@
+{
+  "name": "autoRebalanceCheck",
+  "entry": "main.ts"
+}

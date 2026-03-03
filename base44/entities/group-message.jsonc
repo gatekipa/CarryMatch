@@ -1,0 +1,103 @@
+{
+  "name": "GroupMessage",
+  "type": "object",
+  "properties": {
+    "group_conversation_id": {
+      "type": "string",
+      "description": "ID of the group conversation"
+    },
+    "sender_email": {
+      "type": "string",
+      "description": "Email of message sender"
+    },
+    "sender_name": {
+      "type": "string",
+      "description": "Name of message sender"
+    },
+    "content": {
+      "type": "string",
+      "description": "Message content"
+    },
+    "read_by": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Array of user emails who read the message"
+    },
+    "message_type": {
+      "type": "string",
+      "enum": [
+        "text",
+        "system",
+        "image",
+        "file"
+      ],
+      "default": "text",
+      "description": "Type of message"
+    },
+    "attachment_url": {
+      "type": "string",
+      "description": "URL of attached file/image"
+    },
+    "attachment_type": {
+      "type": "string",
+      "description": "MIME type of attachment"
+    },
+    "attachment_name": {
+      "type": "string",
+      "description": "Original filename of attachment"
+    }
+  },
+  "required": [
+    "group_conversation_id",
+    "sender_email"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "group_conversation_id": {
+            "$in": [
+              {
+                "field": "id",
+                "filter": {
+                  "participants.email": {
+                    "$in": [
+                      "{{user.email}}"
+                    ]
+                  }
+                },
+                "entity": "GroupConversation"
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "sender_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

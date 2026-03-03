@@ -1,0 +1,98 @@
+{
+  "name": "RouteStop",
+  "type": "object",
+  "properties": {
+    "route_id": {
+      "type": "string",
+      "description": "Reference to BusRoute"
+    },
+    "stop_name": {
+      "type": "string",
+      "description": "Stop name"
+    },
+    "city": {
+      "type": "string",
+      "description": "City of stop"
+    },
+    "order_index": {
+      "type": "number",
+      "description": "Order in route sequence"
+    },
+    "pickup_allowed": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether pickup is allowed at this stop"
+    },
+    "dropoff_allowed": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether dropoff is allowed at this stop"
+    }
+  },
+  "required": [
+    "route_id",
+    "stop_name",
+    "city",
+    "order_index"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$always": true
+    },
+    "update": {
+      "route_id": {
+        "$in": [
+          {
+            "$query": {
+              "entity": "BusRoute",
+              "filter": {
+                "operator_id": {
+                  "$in": [
+                    {
+                      "$query": {
+                        "entity": "BusOperator",
+                        "filter": {
+                          "created_by": "{{user.email}}"
+                        },
+                        "field": "id"
+                      }
+                    }
+                  ]
+                }
+              },
+              "field": "id"
+            }
+          }
+        ]
+      }
+    },
+    "delete": {
+      "route_id": {
+        "$in": [
+          {
+            "$query": {
+              "entity": "BusRoute",
+              "filter": {
+                "operator_id": {
+                  "$in": [
+                    {
+                      "$query": {
+                        "entity": "BusOperator",
+                        "filter": {
+                          "created_by": "{{user.email}}"
+                        },
+                        "field": "id"
+                      }
+                    }
+                  ]
+                }
+              },
+              "field": "id"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

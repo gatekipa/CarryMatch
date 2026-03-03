@@ -1,0 +1,179 @@
+{
+  "name": "Review",
+  "type": "object",
+  "properties": {
+    "match_id": {
+      "type": "string",
+      "description": "ID of the completed match"
+    },
+    "trip_id": {
+      "type": "string",
+      "description": "Related trip ID"
+    },
+    "request_id": {
+      "type": "string",
+      "description": "Related shipment request ID"
+    },
+    "reviewer_email": {
+      "type": "string",
+      "description": "Email of person leaving the review"
+    },
+    "reviewer_name": {
+      "type": "string",
+      "description": "Name of person leaving the review"
+    },
+    "reviewee_email": {
+      "type": "string",
+      "description": "Email of person being reviewed"
+    },
+    "reviewee_name": {
+      "type": "string",
+      "description": "Name of person being reviewed"
+    },
+    "rating": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Star rating from 1-5"
+    },
+    "review_text": {
+      "type": "string",
+      "description": "Written review content"
+    },
+    "review_type": {
+      "type": "string",
+      "enum": [
+        "traveler",
+        "requester"
+      ],
+      "description": "Whether reviewing a traveler or requester"
+    },
+    "category_ratings": {
+      "type": "object",
+      "properties": {
+        "communication": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "punctuality": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "professionalism": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "item_condition": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 5
+        }
+      },
+      "description": "Detailed category ratings"
+    },
+    "is_verified": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this review is from a verified transaction"
+    },
+    "photo_urls": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "URLs to optional photos attached to review"
+    },
+    "is_hidden": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether review is hidden by admin"
+    },
+    "admin_notes": {
+      "type": "string",
+      "description": "Admin notes about this review"
+    },
+    "is_flagged": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether review has been flagged for moderation"
+    },
+    "flag_reason": {
+      "type": "string",
+      "description": "Reason for flagging"
+    },
+    "response": {
+      "type": "string",
+      "description": "Reviewee's response to the review"
+    },
+    "response_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When reviewee responded"
+    },
+    "helpful_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of users who found this review helpful"
+    },
+    "unhelpful_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of users who found this review unhelpful"
+    },
+    "voted_by": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Array of user emails who voted on this review"
+    }
+  },
+  "required": [
+    "reviewer_email",
+    "reviewee_email",
+    "rating",
+    "review_type"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "reviewee_email": "{{user.email}}"
+        },
+        {
+          "reviewer_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "is_hidden": false
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "reviewee_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

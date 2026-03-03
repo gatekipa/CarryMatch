@@ -1,0 +1,109 @@
+{
+  "name": "BusVehicle",
+  "type": "object",
+  "properties": {
+    "operator_id": {
+      "type": "string",
+      "description": "Reference to BusOperator"
+    },
+    "vehicle_number": {
+      "type": "string",
+      "description": "Vehicle registration/identification number"
+    },
+    "vehicle_type": {
+      "type": "string",
+      "enum": [
+        "standard",
+        "vip",
+        "luxury"
+      ],
+      "default": "standard",
+      "description": "Type of bus"
+    },
+    "total_seats": {
+      "type": "number",
+      "description": "Total number of seats"
+    },
+    "seat_layout": {
+      "type": "object",
+      "description": "Seat map configuration (rows, columns, unavailable seats)"
+    },
+    "amenities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Bus amenities (AC, WiFi, etc.)"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether vehicle is active"
+    }
+  },
+  "required": [
+    "operator_id",
+    "vehicle_number",
+    "total_seats"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "is_active": true
+        },
+        {
+          "operator_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "BusOperator",
+                  "filter": {
+                    "owner_email": "{{user.email}}"
+                  },
+                  "field": "id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "operator_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "BusOperator",
+                  "filter": {
+                    "owner_email": "{{user.email}}"
+                  },
+                  "field": "id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

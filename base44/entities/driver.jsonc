@@ -1,0 +1,136 @@
+{
+  "name": "Driver",
+  "type": "object",
+  "properties": {
+    "operator_id": {
+      "type": "string",
+      "description": "Reference to BusOperator"
+    },
+    "full_name": {
+      "type": "string",
+      "description": "Driver full name"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Contact phone"
+    },
+    "email": {
+      "type": "string",
+      "description": "Contact email (optional)"
+    },
+    "license_number": {
+      "type": "string",
+      "description": "Driver's license number"
+    },
+    "license_expiry": {
+      "type": "string",
+      "format": "date",
+      "description": "License expiration date"
+    },
+    "photo_url": {
+      "type": "string",
+      "description": "Driver photo URL (optional)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive",
+        "suspended"
+      ],
+      "default": "active",
+      "description": "Driver status"
+    },
+    "experience_years": {
+      "type": "number",
+      "description": "Years of driving experience"
+    },
+    "rating": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 5,
+      "description": "Driver rating (0-5)"
+    },
+    "total_trips": {
+      "type": "number",
+      "default": 0,
+      "description": "Total trips completed"
+    },
+    "incidents_json": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Log of incidents/issues"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes"
+    }
+  },
+  "required": [
+    "operator_id",
+    "full_name",
+    "phone",
+    "license_number"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "operator_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "OperatorStaff",
+                  "filter": {
+                    "user_id": "{{user.email}}",
+                    "status": "active"
+                  },
+                  "field": "operator_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "operator_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "OperatorStaff",
+                  "filter": {
+                    "user_id": "{{user.email}}",
+                    "status": "active",
+                    "staff_role": "vendor_bus_operator"
+                  },
+                  "field": "operator_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

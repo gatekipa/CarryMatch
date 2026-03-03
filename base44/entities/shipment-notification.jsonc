@@ -1,0 +1,189 @@
+{
+  "name": "ShipmentNotification",
+  "type": "object",
+  "properties": {
+    "shipment_id": {
+      "type": "string",
+      "description": "Reference to Shipment"
+    },
+    "tracking_code": {
+      "type": "string",
+      "description": "Tracking code for reference"
+    },
+    "vendor_id": {
+      "type": "string",
+      "description": "Reference to Vendor"
+    },
+    "recipient_name": {
+      "type": "string",
+      "description": "Recipient name"
+    },
+    "recipient_email": {
+      "type": "string",
+      "description": "Recipient email"
+    },
+    "recipient_phone": {
+      "type": "string",
+      "description": "Recipient phone"
+    },
+    "notification_type": {
+      "type": "string",
+      "enum": [
+        "READY_PICKUP",
+        "DELAYED",
+        "ON_HOLD",
+        "DELIVERED"
+      ],
+      "description": "Type of notification"
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "EMAIL",
+        "SMS",
+        "WHATSAPP"
+      ],
+      "description": "Channel used to send notification"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "SENT",
+        "FAILED",
+        "READ"
+      ],
+      "default": "PENDING",
+      "description": "Notification status"
+    },
+    "message_subject": {
+      "type": "string",
+      "description": "Subject line or title"
+    },
+    "message_body": {
+      "type": "string",
+      "description": "Full message content"
+    },
+    "sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When notification was sent"
+    },
+    "read_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When recipient read/opened the notification"
+    },
+    "failure_reason": {
+      "type": "string",
+      "description": "Reason for failure if applicable"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional data like OTP, ETA, pickup location"
+    }
+  },
+  "required": [
+    "shipment_id",
+    "tracking_code",
+    "vendor_id",
+    "notification_type",
+    "channel"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "recipient_email": "{{user.email}}"
+        },
+        {
+          "vendor_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "VendorStaff",
+                  "filter": {
+                    "email": "{{user.email}}"
+                  },
+                  "field": "vendor_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "recipient_email": "{{user.email}}"
+        },
+        {
+          "vendor_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "VendorStaff",
+                  "filter": {
+                    "email": "{{user.email}}",
+                    "role": {
+                      "$in": [
+                        "OWNER",
+                        "MANAGER"
+                      ]
+                    }
+                  },
+                  "field": "vendor_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "recipient_email": "{{user.email}}"
+        },
+        {
+          "vendor_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "VendorStaff",
+                  "filter": {
+                    "email": "{{user.email}}",
+                    "role": {
+                      "$in": [
+                        "OWNER",
+                        "MANAGER"
+                      ]
+                    }
+                  },
+                  "field": "vendor_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

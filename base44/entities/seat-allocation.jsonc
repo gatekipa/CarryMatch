@@ -1,0 +1,152 @@
+{
+  "name": "SeatAllocation",
+  "type": "object",
+  "properties": {
+    "seat_allocation_rule_id": {
+      "type": "string",
+      "description": "Reference to SeatAllocationRule"
+    },
+    "branch_id": {
+      "type": "string",
+      "description": "Reference to OperatorBranch (nullable = online pool)"
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "online",
+        "branch"
+      ],
+      "description": "Sales channel for this allocation"
+    },
+    "allocated_seats_count": {
+      "type": "number",
+      "description": "Number of seats allocated to this branch/channel"
+    },
+    "locked": {
+      "type": "boolean",
+      "default": false,
+      "description": "Lock allocation (prevent rebalancing)"
+    }
+  },
+  "required": [
+    "seat_allocation_rule_id",
+    "channel",
+    "allocated_seats_count"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "seat_allocation_rule_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "SeatAllocationRule",
+                  "filter": {
+                    "operator_id": {
+                      "$in": [
+                        {
+                          "$query": {
+                            "entity": "OperatorStaff",
+                            "filter": {
+                              "user_id": "{{user.email}}",
+                              "status": "active"
+                            },
+                            "field": "operator_id"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "field": "id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "seat_allocation_rule_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "SeatAllocationRule",
+                  "filter": {
+                    "operator_id": {
+                      "$in": [
+                        {
+                          "$query": {
+                            "entity": "OperatorStaff",
+                            "filter": {
+                              "user_id": "{{user.email}}",
+                              "status": "active",
+                              "staff_role": "vendor_bus_operator"
+                            },
+                            "field": "operator_id"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "field": "id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "seat_allocation_rule_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "SeatAllocationRule",
+                  "filter": {
+                    "operator_id": {
+                      "$in": [
+                        {
+                          "$query": {
+                            "entity": "OperatorStaff",
+                            "filter": {
+                              "user_id": "{{user.email}}",
+                              "status": "active",
+                              "staff_role": "vendor_bus_operator"
+                            },
+                            "field": "operator_id"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "field": "id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

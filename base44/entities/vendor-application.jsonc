@@ -1,0 +1,184 @@
+{
+  "name": "VendorApplication",
+  "type": "object",
+  "properties": {
+    "legal_name": {
+      "type": "string",
+      "description": "Legal registered business name"
+    },
+    "display_name": {
+      "type": "string",
+      "description": "Public-facing display name"
+    },
+    "vendor_type": {
+      "type": "string",
+      "enum": [
+        "BUS_AGENCY",
+        "PARCEL_FORWARDER",
+        "CONTAINER_SHIPPER",
+        "COURIER_COMPANY",
+        "FREIGHT_FORWARDER",
+        "SHOP_RESELLER",
+        "OTHER"
+      ],
+      "description": "Type of logistics vendor"
+    },
+    "description": {
+      "type": "string",
+      "description": "Business description"
+    },
+    "contact_name": {
+      "type": "string",
+      "description": "Primary contact person name"
+    },
+    "contact_email": {
+      "type": "string",
+      "description": "Primary contact email"
+    },
+    "contact_phone": {
+      "type": "string",
+      "description": "Primary contact phone"
+    },
+    "hq_country": {
+      "type": "string",
+      "description": "Headquarters country"
+    },
+    "hq_city": {
+      "type": "string",
+      "description": "Headquarters city"
+    },
+    "address": {
+      "type": "string",
+      "description": "Business address"
+    },
+    "business_registration_doc": {
+      "type": "string",
+      "description": "URL to business registration document"
+    },
+    "license_docs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "URLs to business licenses"
+    },
+    "tax_id_doc": {
+      "type": "string",
+      "description": "URL to tax identification document"
+    },
+    "insurance_doc": {
+      "type": "string",
+      "description": "URL to insurance certificate"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "UNDER_REVIEW",
+        "DOCUMENTS_REQUESTED",
+        "APPROVED",
+        "REJECTED"
+      ],
+      "default": "PENDING",
+      "description": "Application status"
+    },
+    "document_verification_status": {
+      "type": "object",
+      "properties": {
+        "business_registration": {
+          "type": "string",
+          "enum": [
+            "PENDING",
+            "VERIFIED",
+            "REJECTED"
+          ]
+        },
+        "licenses": {
+          "type": "string",
+          "enum": [
+            "PENDING",
+            "VERIFIED",
+            "REJECTED"
+          ]
+        },
+        "tax_id": {
+          "type": "string",
+          "enum": [
+            "PENDING",
+            "VERIFIED",
+            "REJECTED"
+          ]
+        },
+        "insurance": {
+          "type": "string",
+          "enum": [
+            "PENDING",
+            "VERIFIED",
+            "REJECTED"
+          ]
+        }
+      },
+      "default": {
+        "business_registration": "PENDING",
+        "licenses": "PENDING",
+        "tax_id": "PENDING",
+        "insurance": "PENDING"
+      },
+      "description": "Document verification status"
+    },
+    "rejection_reason": {
+      "type": "string",
+      "description": "Reason for rejection if applicable"
+    },
+    "admin_notes": {
+      "type": "string",
+      "description": "Internal notes from admin review"
+    },
+    "reviewed_by": {
+      "type": "string",
+      "description": "Admin who reviewed the application"
+    },
+    "reviewed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When application was reviewed"
+    },
+    "vendor_id": {
+      "type": "string",
+      "description": "Reference to created Vendor if approved"
+    }
+  },
+  "required": [
+    "legal_name",
+    "display_name",
+    "vendor_type",
+    "contact_email",
+    "hq_country"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

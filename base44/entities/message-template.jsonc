@@ -1,0 +1,103 @@
+{
+  "name": "MessageTemplate",
+  "type": "object",
+  "properties": {
+    "operator_id": {
+      "type": "string",
+      "description": "Reference to BusOperator"
+    },
+    "template_type": {
+      "type": "string",
+      "enum": [
+        "purchase_confirmation",
+        "reminder_180",
+        "reminder_60",
+        "reminder_30",
+        "boarding_open",
+        "delay_notice",
+        "reschedule_notice",
+        "cancel_notice",
+        "seat_change"
+      ],
+      "description": "Template type"
+    },
+    "language": {
+      "type": "string",
+      "enum": [
+        "EN",
+        "FR"
+      ],
+      "default": "EN",
+      "description": "Template language"
+    },
+    "content_text": {
+      "type": "string",
+      "description": "Template content with placeholders: {operator_name}, {branch}, {origin}, {destination}, {date}, {time}, {seat}, {ticket_code}, {new_time}, {new_date}, {new_seat}"
+    }
+  },
+  "required": [
+    "operator_id",
+    "template_type",
+    "language",
+    "content_text"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "operator_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "OperatorStaff",
+                  "filter": {
+                    "user_id": "{{user.email}}",
+                    "status": "active"
+                  },
+                  "field": "operator_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "operator_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "OperatorStaff",
+                  "filter": {
+                    "user_id": "{{user.email}}",
+                    "status": "active",
+                    "staff_role": "vendor_bus_operator"
+                  },
+                  "field": "operator_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

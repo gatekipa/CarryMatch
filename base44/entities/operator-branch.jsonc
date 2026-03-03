@@ -1,0 +1,115 @@
+{
+  "name": "OperatorBranch",
+  "type": "object",
+  "properties": {
+    "operator_id": {
+      "type": "string",
+      "description": "Reference to BusOperator"
+    },
+    "branch_name": {
+      "type": "string",
+      "description": "Branch/station name"
+    },
+    "city": {
+      "type": "string",
+      "description": "City location"
+    },
+    "address_text": {
+      "type": "string",
+      "description": "Full address"
+    },
+    "contact_phone": {
+      "type": "string",
+      "description": "Branch contact phone"
+    },
+    "is_primary": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this is the primary branch"
+    }
+  },
+  "required": [
+    "operator_id",
+    "branch_name",
+    "city"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "operator_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "BusOperator",
+                  "filter": {
+                    "status": "active"
+                  },
+                  "field": "id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "operator_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "OperatorStaff",
+                  "filter": {
+                    "email": "{{user.email}}",
+                    "status": "active"
+                  },
+                  "field": "vendor_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "operator_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "OperatorStaff",
+                  "filter": {
+                    "email": "{{user.email}}",
+                    "status": "active",
+                    "role": {
+                      "$in": [
+                        "OWNER",
+                        "MANAGER"
+                      ]
+                    }
+                  },
+                  "field": "vendor_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

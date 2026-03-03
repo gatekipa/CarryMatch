@@ -1,0 +1,91 @@
+{
+  "name": "SeatMapTemplate",
+  "type": "object",
+  "properties": {
+    "operator_id": {
+      "type": "string",
+      "description": "Reference to BusOperator"
+    },
+    "template_name": {
+      "type": "string",
+      "description": "Template name (e.g., 'VIP 2x2 32 seats')"
+    },
+    "layout_json": {
+      "type": "object",
+      "description": "Seat layout grid with labels"
+    },
+    "default_seat_class_rules_json": {
+      "type": "object",
+      "description": "Rules for standard/vip seat classes"
+    }
+  },
+  "required": [
+    "operator_id",
+    "template_name",
+    "layout_json"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "operator_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "OperatorStaff",
+                  "filter": {
+                    "email": "{{user.email}}",
+                    "status": "active"
+                  },
+                  "field": "vendor_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "operator_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "OperatorStaff",
+                  "filter": {
+                    "email": "{{user.email}}",
+                    "status": "active",
+                    "role": {
+                      "$in": [
+                        "OWNER",
+                        "MANAGER"
+                      ]
+                    }
+                  },
+                  "field": "vendor_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

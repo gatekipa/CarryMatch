@@ -1,0 +1,190 @@
+{
+  "name": "VendorPerformanceReview",
+  "type": "object",
+  "properties": {
+    "vendor_id": {
+      "type": "string",
+      "description": "Reference to Vendor being reviewed"
+    },
+    "review_period_start": {
+      "type": "string",
+      "format": "date",
+      "description": "Start date of review period"
+    },
+    "review_period_end": {
+      "type": "string",
+      "format": "date",
+      "description": "End date of review period"
+    },
+    "kpis": {
+      "type": "object",
+      "properties": {
+        "on_time_delivery_rate": {
+          "type": "number",
+          "description": "Percentage of on-time deliveries"
+        },
+        "customer_satisfaction_score": {
+          "type": "number",
+          "description": "Average customer rating (1-5)"
+        },
+        "total_shipments": {
+          "type": "number",
+          "description": "Total shipments processed"
+        },
+        "average_transit_time": {
+          "type": "number",
+          "description": "Average delivery time in days"
+        },
+        "delayed_shipments": {
+          "type": "number",
+          "description": "Number of delayed shipments"
+        },
+        "lost_damaged_rate": {
+          "type": "number",
+          "description": "Percentage of lost or damaged shipments"
+        },
+        "response_time_hours": {
+          "type": "number",
+          "description": "Average response time to issues in hours"
+        },
+        "revenue_generated": {
+          "type": "number",
+          "description": "Total revenue from this vendor"
+        }
+      },
+      "description": "Key Performance Indicators"
+    },
+    "overall_rating": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Overall performance rating"
+    },
+    "strengths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Identified strengths"
+    },
+    "areas_for_improvement": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Areas needing improvement"
+    },
+    "feedback": {
+      "type": "string",
+      "description": "Detailed feedback and comments"
+    },
+    "action_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "item": {
+            "type": "string"
+          },
+          "due_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          }
+        }
+      },
+      "default": [],
+      "description": "Action items from review"
+    },
+    "reviewed_by": {
+      "type": "string",
+      "description": "Admin who conducted the review"
+    },
+    "vendor_acknowledged": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether vendor acknowledged the review"
+    },
+    "vendor_response": {
+      "type": "string",
+      "description": "Vendor's response to the review"
+    }
+  },
+  "required": [
+    "vendor_id",
+    "review_period_start",
+    "review_period_end"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "vendor_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "VendorStaff",
+                  "filter": {
+                    "email": "{{user.email}}"
+                  },
+                  "field": "vendor_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "vendor_acknowledged": false,
+          "vendor_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "VendorStaff",
+                  "filter": {
+                    "email": "{{user.email}}",
+                    "role": {
+                      "$in": [
+                        "OWNER",
+                        "MANAGER"
+                      ]
+                    }
+                  },
+                  "field": "vendor_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

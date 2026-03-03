@@ -1,0 +1,180 @@
+{
+  "name": "TripSeatInventory",
+  "type": "object",
+  "properties": {
+    "trip_id": {
+      "type": "string",
+      "description": "Reference to Trip"
+    },
+    "seat_code": {
+      "type": "string",
+      "description": "Seat identifier (e.g., A1, B2)"
+    },
+    "seat_class": {
+      "type": "string",
+      "enum": [
+        "standard",
+        "vip"
+      ],
+      "default": "standard",
+      "description": "Seat class"
+    },
+    "seat_status": {
+      "type": "string",
+      "enum": [
+        "available",
+        "held",
+        "sold_online",
+        "sold_offline",
+        "blocked",
+        "released_for_walkin",
+        "canceled"
+      ],
+      "default": "available",
+      "description": "Current seat status"
+    },
+    "price_xaf": {
+      "type": "number",
+      "description": "Seat price (can override base price)"
+    },
+    "held_until": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Reservation expiry time for held seats"
+    },
+    "held_by_order_id": {
+      "type": "string",
+      "description": "Order ID holding this seat"
+    },
+    "sold_by_branch_id": {
+      "type": "string",
+      "description": "Branch ID that sold this seat (for offline sales)"
+    },
+    "released_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When seat was released for walk-in"
+    },
+    "released_by_user_id": {
+      "type": "string",
+      "description": "User who released the seat"
+    },
+    "release_reason": {
+      "type": "string",
+      "description": "Reason for release"
+    }
+  },
+  "required": [
+    "trip_id",
+    "seat_code",
+    "seat_class",
+    "price_xaf"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "trip_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "Trip",
+                  "filter": {
+                    "$or": [
+                      {
+                        "trip_status": {
+                          "$in": [
+                            "scheduled",
+                            "boarding"
+                          ]
+                        },
+                        "operator_id": {
+                          "$in": [
+                            {
+                              "$query": {
+                                "entity": "BusOperator",
+                                "filter": {
+                                  "status": "active"
+                                },
+                                "field": "id"
+                              }
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "operator_id": {
+                          "$in": [
+                            {
+                              "$query": {
+                                "entity": "OperatorStaff",
+                                "filter": {
+                                  "user_id": "{{user.email}}",
+                                  "status": "active"
+                                },
+                                "field": "operator_id"
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  },
+                  "field": "id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "trip_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "Trip",
+                  "filter": {
+                    "operator_id": {
+                      "$in": [
+                        {
+                          "$query": {
+                            "entity": "OperatorStaff",
+                            "filter": {
+                              "user_id": "{{user.email}}",
+                              "status": "active"
+                            },
+                            "field": "operator_id"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "field": "id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

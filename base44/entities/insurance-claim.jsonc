@@ -1,0 +1,128 @@
+{
+  "name": "InsuranceClaim",
+  "type": "object",
+  "properties": {
+    "vendor_id": {
+      "type": "string",
+      "description": "Reference to Vendor"
+    },
+    "shipment_id": {
+      "type": "string",
+      "description": "Reference to Shipment"
+    },
+    "claim_type": {
+      "type": "string",
+      "enum": [
+        "lost",
+        "damaged",
+        "delayed",
+        "theft"
+      ],
+      "description": "Type of claim"
+    },
+    "claim_amount": {
+      "type": "number",
+      "description": "Claimed amount in USD"
+    },
+    "insured_value": {
+      "type": "number",
+      "description": "Insured value of shipment"
+    },
+    "incident_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of incident"
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed description of incident"
+    },
+    "supporting_documents": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "URLs of uploaded documents"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "submitted",
+        "under_review",
+        "approved",
+        "rejected",
+        "paid"
+      ],
+      "default": "submitted",
+      "description": "Claim status"
+    },
+    "filed_by": {
+      "type": "string",
+      "description": "Staff member who filed claim"
+    },
+    "review_notes": {
+      "type": "string",
+      "description": "Admin review notes"
+    },
+    "approved_amount": {
+      "type": "number",
+      "description": "Approved payout amount"
+    },
+    "payment_reference": {
+      "type": "string",
+      "description": "Payment reference number"
+    },
+    "resolved_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Date claim was resolved"
+    }
+  },
+  "required": [
+    "vendor_id",
+    "shipment_id",
+    "claim_type",
+    "claim_amount",
+    "incident_date",
+    "description"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "vendor_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "VendorStaff",
+                  "filter": {
+                    "email": "{{user.email}}",
+                    "status": "ACTIVE"
+                  },
+                  "field": "vendor_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

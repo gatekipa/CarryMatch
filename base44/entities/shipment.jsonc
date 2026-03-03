@@ -1,0 +1,383 @@
+{
+  "name": "Shipment",
+  "type": "object",
+  "properties": {
+    "vendor_id": {
+      "type": "string",
+      "description": "Reference to Vendor"
+    },
+    "branch_id": {
+      "type": "string",
+      "description": "Origin branch where shipment was created"
+    },
+    "tracking_code": {
+      "type": "string",
+      "description": "Unique tracking code (QR/barcode)"
+    },
+    "sender_name": {
+      "type": "string",
+      "description": "Sender full name"
+    },
+    "sender_phone": {
+      "type": "string",
+      "description": "Sender phone (E.164 format)"
+    },
+    "sender_email": {
+      "type": "string",
+      "description": "Sender email"
+    },
+    "sender_country": {
+      "type": "string",
+      "description": "Sender country"
+    },
+    "sender_city": {
+      "type": "string",
+      "description": "Sender city"
+    },
+    "recipient_name": {
+      "type": "string",
+      "description": "Recipient full name"
+    },
+    "recipient_phone": {
+      "type": "string",
+      "description": "Recipient phone (E.164 format)"
+    },
+    "recipient_email": {
+      "type": "string",
+      "description": "Recipient email"
+    },
+    "recipient_country": {
+      "type": "string",
+      "description": "Recipient country"
+    },
+    "recipient_city": {
+      "type": "string",
+      "description": "Recipient city"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short parcel description"
+    },
+    "photos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "URLs to parcel photos (1-3)"
+    },
+    "weight_kg": {
+      "type": "number",
+      "description": "Weight in kilograms"
+    },
+    "length_cm": {
+      "type": "number",
+      "description": "Length in centimeters"
+    },
+    "width_cm": {
+      "type": "number",
+      "description": "Width in centimeters"
+    },
+    "height_cm": {
+      "type": "number",
+      "description": "Height in centimeters"
+    },
+    "base_price": {
+      "type": "number",
+      "description": "Base shipping price"
+    },
+    "currency": {
+      "type": "string",
+      "default": "USD",
+      "description": "Currency code"
+    },
+    "line_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number"
+          }
+        }
+      },
+      "default": [],
+      "description": "Additional charges (packing, pickup, discount, tax)"
+    },
+    "insurance_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether insurance is purchased"
+    },
+    "declared_value": {
+      "type": "number",
+      "description": "Declared value for insurance"
+    },
+    "insurance_premium": {
+      "type": "number",
+      "description": "Calculated insurance premium"
+    },
+    "insurance_policy_id": {
+      "type": "string",
+      "description": "Generated policy ID"
+    },
+    "insurance_coverage_text": {
+      "type": "string",
+      "description": "Coverage terms and conditions"
+    },
+    "total_amount": {
+      "type": "number",
+      "description": "Total amount (shipping + insurance)"
+    },
+    "payment_status": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "PAID",
+        "PARTIAL"
+      ],
+      "default": "PENDING",
+      "description": "Payment status"
+    },
+    "payment_method": {
+      "type": "string",
+      "enum": [
+        "CASH",
+        "ZELLE",
+        "MOMO",
+        "BANK_TRANSFER",
+        "OTHER"
+      ],
+      "description": "Payment method used"
+    },
+    "payment_reference": {
+      "type": "string",
+      "description": "Payment reference (Zelle ref, MoMo ID, receipt number)"
+    },
+    "payment_recorded_by": {
+      "type": "string",
+      "description": "Staff member who recorded payment"
+    },
+    "payment_recorded_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When payment was recorded"
+    },
+    "amount_paid": {
+      "type": "number",
+      "default": 0,
+      "description": "Amount actually collected"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "RECEIVED",
+        "PACKED",
+        "MANIFESTED",
+        "SHIPPED",
+        "IN_TRANSIT",
+        "ARRIVED",
+        "CUSTOMS",
+        "READY_PICKUP",
+        "OUT_FOR_DELIVERY",
+        "DELIVERED",
+        "ON_HOLD",
+        "DELAYED",
+        "RETURNED",
+        "LOST",
+        "DAMAGED"
+      ],
+      "default": "RECEIVED",
+      "description": "Current shipment status"
+    },
+    "batch_id": {
+      "type": "string",
+      "description": "Reference to batch if assigned"
+    },
+    "destination_branch_id": {
+      "type": "string",
+      "description": "Destination branch"
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "AIR",
+        "SEA",
+        "ROAD",
+        "BUS",
+        "RAIL"
+      ],
+      "description": "Transport mode"
+    },
+    "pickup_otp": {
+      "type": "string",
+      "description": "OTP for pickup verification (4-6 digits)"
+    },
+    "pickup_otp_generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When OTP was generated"
+    },
+    "pickup_otp_verified": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether OTP was verified"
+    },
+    "pickup_fallback_signature": {
+      "type": "string",
+      "description": "URL to signature image if no OTP used"
+    },
+    "pickup_fallback_photo": {
+      "type": "string",
+      "description": "URL to ID photo if no OTP used"
+    },
+    "pickup_fallback_note": {
+      "type": "string",
+      "description": "Note about fallback pickup process"
+    },
+    "label_printed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether label was printed"
+    },
+    "notifications_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether initial notifications were sent"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Internal notes"
+    },
+    "created_by_staff_id": {
+      "type": "string",
+      "description": "Staff member who created the shipment"
+    },
+    "current_location": {
+      "type": "object",
+      "properties": {
+        "latitude": {
+          "type": "number"
+        },
+        "longitude": {
+          "type": "number"
+        },
+        "address": {
+          "type": "string"
+        }
+      },
+      "description": "Current location coordinates"
+    }
+  },
+  "required": [
+    "vendor_id",
+    "branch_id",
+    "tracking_code",
+    "sender_name",
+    "sender_phone",
+    "recipient_name",
+    "recipient_phone",
+    "description",
+    "base_price",
+    "total_amount"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "sender_email": "{{user.email}}"
+        },
+        {
+          "recipient_email": "{{user.email}}"
+        },
+        {
+          "vendor_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "VendorStaff",
+                  "filter": {
+                    "email": "{{user.email}}"
+                  },
+                  "field": "vendor_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "vendor_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "VendorStaff",
+                  "filter": {
+                    "email": "{{user.email}}",
+                    "role": {
+                      "$in": [
+                        "OWNER",
+                        "MANAGER",
+                        "OPS_ORIGIN",
+                        "OPS_DEST"
+                      ]
+                    }
+                  },
+                  "field": "vendor_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "vendor_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "VendorStaff",
+                  "filter": {
+                    "email": "{{user.email}}",
+                    "role": {
+                      "$in": [
+                        "OWNER",
+                        "MANAGER"
+                      ]
+                    }
+                  },
+                  "field": "vendor_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,139 @@
+{
+  "name": "SupportTicket",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "description": "Email of user who created ticket"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Name of user"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Ticket subject"
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed description of the issue"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "TRACKING",
+        "PAYMENT",
+        "DELIVERY",
+        "TECHNICAL",
+        "GENERAL"
+      ],
+      "default": "GENERAL",
+      "description": "Issue category"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "LOW",
+        "MEDIUM",
+        "HIGH",
+        "URGENT"
+      ],
+      "default": "MEDIUM",
+      "description": "Ticket priority"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "OPEN",
+        "IN_PROGRESS",
+        "RESOLVED",
+        "CLOSED"
+      ],
+      "default": "OPEN",
+      "description": "Ticket status"
+    },
+    "shipment_id": {
+      "type": "string",
+      "description": "Related shipment ID if applicable"
+    },
+    "tracking_code": {
+      "type": "string",
+      "description": "Related tracking code if applicable"
+    },
+    "chat_transcript": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string"
+          }
+        }
+      },
+      "default": [],
+      "description": "Chat history from AI assistant"
+    },
+    "assigned_to": {
+      "type": "string",
+      "description": "Email of support agent assigned"
+    },
+    "resolved_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When ticket was resolved"
+    },
+    "resolution_notes": {
+      "type": "string",
+      "description": "Notes about how issue was resolved"
+    }
+  },
+  "required": [
+    "user_email",
+    "subject",
+    "description"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "user_email": "{{user.email}}"
+        },
+        {
+          "assigned_to": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_email": "{{user.email}}"
+        },
+        {
+          "assigned_to": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

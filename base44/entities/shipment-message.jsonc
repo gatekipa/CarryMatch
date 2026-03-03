@@ -1,0 +1,150 @@
+{
+  "name": "ShipmentMessage",
+  "type": "object",
+  "properties": {
+    "shipment_id": {
+      "type": "string",
+      "description": "Reference to Shipment"
+    },
+    "tracking_code": {
+      "type": "string",
+      "description": "Tracking code for reference"
+    },
+    "vendor_id": {
+      "type": "string",
+      "description": "Reference to Vendor"
+    },
+    "sender_type": {
+      "type": "string",
+      "enum": [
+        "VENDOR",
+        "CUSTOMER"
+      ],
+      "description": "Who sent the message"
+    },
+    "sender_name": {
+      "type": "string",
+      "description": "Name of sender"
+    },
+    "sender_email": {
+      "type": "string",
+      "description": "Email of sender"
+    },
+    "recipient_type": {
+      "type": "string",
+      "enum": [
+        "VENDOR",
+        "CUSTOMER"
+      ],
+      "description": "Who receives the message"
+    },
+    "recipient_name": {
+      "type": "string",
+      "description": "Name of recipient"
+    },
+    "recipient_email": {
+      "type": "string",
+      "description": "Email of recipient"
+    },
+    "recipient_phone": {
+      "type": "string",
+      "description": "Phone of recipient"
+    },
+    "message": {
+      "type": "string",
+      "description": "Message content"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "SENT",
+        "DELIVERED",
+        "READ"
+      ],
+      "default": "SENT",
+      "description": "Message status"
+    },
+    "read_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When message was read"
+    },
+    "notification_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether email notification was sent"
+    }
+  },
+  "required": [
+    "shipment_id",
+    "tracking_code",
+    "vendor_id",
+    "sender_type",
+    "message"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "sender_email": "{{user.email}}"
+        },
+        {
+          "recipient_email": "{{user.email}}"
+        },
+        {
+          "vendor_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "VendorStaff",
+                  "filter": {
+                    "email": "{{user.email}}"
+                  },
+                  "field": "vendor_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "sender_email": "{{user.email}}"
+        },
+        {
+          "vendor_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "VendorStaff",
+                  "filter": {
+                    "email": "{{user.email}}"
+                  },
+                  "field": "vendor_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

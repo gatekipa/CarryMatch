@@ -1,0 +1,81 @@
+{
+  "name": "Referral",
+  "type": "object",
+  "properties": {
+    "referrer_email": {
+      "type": "string",
+      "description": "Email of user who made the referral"
+    },
+    "referee_email": {
+      "type": "string",
+      "description": "Email of user who was referred"
+    },
+    "referral_code": {
+      "type": "string",
+      "description": "Referral code used"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "completed",
+        "expired"
+      ],
+      "default": "pending",
+      "description": "Status of the referral"
+    },
+    "reward_amount": {
+      "type": "number",
+      "default": 10,
+      "description": "Reward amount for successful referral"
+    },
+    "reward_claimed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether reward has been claimed"
+    },
+    "referee_first_transaction_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When referee completed first transaction"
+    },
+    "completed_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When referral was completed"
+    }
+  },
+  "required": [
+    "referrer_email",
+    "referee_email",
+    "referral_code"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "referrer_email": "{{user.email}}"
+        },
+        {
+          "referee_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

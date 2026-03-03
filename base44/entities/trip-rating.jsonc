@@ -1,0 +1,100 @@
+{
+  "name": "TripRating",
+  "type": "object",
+  "properties": {
+    "operator_id": {
+      "type": "string",
+      "description": "Reference to BusOperator"
+    },
+    "trip_id": {
+      "type": "string",
+      "description": "Reference to Trip"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "User who rated"
+    },
+    "rating": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Rating (1-5)"
+    },
+    "tags_json": {
+      "type": "object",
+      "properties": {
+        "cleanliness": {
+          "type": "number"
+        },
+        "punctuality": {
+          "type": "number"
+        },
+        "comfort": {
+          "type": "number"
+        },
+        "staff": {
+          "type": "number"
+        }
+      },
+      "description": "Category ratings"
+    },
+    "comment": {
+      "type": "string",
+      "description": "Written feedback"
+    }
+  },
+  "required": [
+    "operator_id",
+    "trip_id",
+    "user_id",
+    "rating"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "user_id": "{{user.email}}"
+        },
+        {
+          "operator_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "OperatorStaff",
+                  "filter": {
+                    "user_id": "{{user.email}}",
+                    "status": "active"
+                  },
+                  "field": "operator_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_id": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

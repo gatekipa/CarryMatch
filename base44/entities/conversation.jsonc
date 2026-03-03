@@ -1,0 +1,111 @@
+{
+  "name": "Conversation",
+  "type": "object",
+  "properties": {
+    "participant_1_email": {
+      "type": "string",
+      "description": "Email of first participant"
+    },
+    "participant_1_name": {
+      "type": "string",
+      "description": "Name of first participant"
+    },
+    "participant_2_email": {
+      "type": "string",
+      "description": "Email of second participant"
+    },
+    "participant_2_name": {
+      "type": "string",
+      "description": "Name of second participant"
+    },
+    "last_message": {
+      "type": "string",
+      "description": "Preview of last message"
+    },
+    "last_message_time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp of last message"
+    },
+    "trip_id": {
+      "type": "string",
+      "description": "Related trip ID if applicable"
+    },
+    "request_id": {
+      "type": "string",
+      "description": "Related shipment request ID if applicable"
+    },
+    "unread_count_participant_1": {
+      "type": "number",
+      "default": 0,
+      "description": "Unread message count for participant 1"
+    },
+    "unread_count_participant_2": {
+      "type": "number",
+      "default": 0,
+      "description": "Unread message count for participant 2"
+    },
+    "participant_1_typing": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether participant 1 is typing"
+    },
+    "participant_2_typing": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether participant 2 is typing"
+    },
+    "participant_1_last_seen": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last activity time for participant 1"
+    },
+    "participant_2_last_seen": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last activity time for participant 2"
+    }
+  },
+  "required": [
+    "participant_1_email",
+    "participant_2_email"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "participant_1_email": "{{user.email}}"
+        },
+        {
+          "participant_2_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "participant_1_email": "{{user.email}}"
+        },
+        {
+          "participant_2_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -1,0 +1,154 @@
+{
+  "name": "VendorStaff",
+  "type": "object",
+  "properties": {
+    "vendor_id": {
+      "type": "string",
+      "description": "Reference to parent Vendor"
+    },
+    "branch_id": {
+      "type": "string",
+      "description": "Assigned branch/hub (optional, can be multi-branch)"
+    },
+    "full_name": {
+      "type": "string",
+      "description": "Staff member full name"
+    },
+    "email": {
+      "type": "string",
+      "description": "Staff email for login"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Staff phone number"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "OWNER",
+        "MANAGER",
+        "OPS_ORIGIN",
+        "OPS_DEST",
+        "CASHIER",
+        "VIEWER"
+      ],
+      "default": "VIEWER",
+      "description": "Staff role determining permissions"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "INVITED",
+        "ACTIVE",
+        "DISABLED"
+      ],
+      "default": "INVITED",
+      "description": "Staff account status"
+    },
+    "invitation_token": {
+      "type": "string",
+      "description": "Token for completing registration"
+    },
+    "invitation_sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When invitation was sent"
+    },
+    "last_login_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last login timestamp"
+    },
+    "permissions_override": {
+      "type": "object",
+      "description": "Custom permissions override for this user"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Internal notes about this staff member"
+    }
+  },
+  "required": [
+    "vendor_id",
+    "full_name",
+    "email",
+    "role"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "email": "{{user.email}}"
+        },
+        {
+          "vendor_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "VendorStaff",
+                  "filter": {
+                    "email": "{{user.email}}",
+                    "role": {
+                      "$in": [
+                        "OWNER",
+                        "MANAGER"
+                      ]
+                    }
+                  },
+                  "field": "vendor_id"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "vendor_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "VendorStaff",
+                  "filter": {
+                    "email": "{{user.email}}",
+                    "role": {
+                      "$in": [
+                        "OWNER"
+                      ]
+                    }
+                  },
+                  "field": "vendor_id"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

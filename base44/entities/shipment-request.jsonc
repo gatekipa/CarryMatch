@@ -1,0 +1,198 @@
+{
+  "name": "ShipmentRequest",
+  "type": "object",
+  "properties": {
+    "from_city": {
+      "type": "string",
+      "description": "Pickup city"
+    },
+    "from_country": {
+      "type": "string",
+      "description": "Pickup country"
+    },
+    "from_iata": {
+      "type": "string",
+      "description": "Pickup airport IATA code"
+    },
+    "to_city": {
+      "type": "string",
+      "description": "Delivery city"
+    },
+    "to_country": {
+      "type": "string",
+      "description": "Delivery country"
+    },
+    "to_iata": {
+      "type": "string",
+      "description": "Delivery airport IATA code"
+    },
+    "destination_flexibility": {
+      "type": "string",
+      "enum": [
+        "specific",
+        "metro",
+        "state",
+        "national"
+      ],
+      "default": "specific",
+      "description": "Destination flexibility level"
+    },
+    "alternate_destination_airports": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of acceptable destination airport IATA codes"
+    },
+    "destination_state": {
+      "type": "string",
+      "description": "State/region for state-level flexibility"
+    },
+    "destination_country": {
+      "type": "string",
+      "description": "Country for national-level flexibility"
+    },
+    "delivery_type": {
+      "type": "string",
+      "enum": [
+        "airport-to-airport",
+        "door-to-door",
+        "airport-to-door",
+        "door-to-airport"
+      ],
+      "default": "airport-to-airport",
+      "description": "Type of delivery service"
+    },
+    "pickup_address": {
+      "type": "string",
+      "description": "Pickup address for door-to-door or door-to-airport"
+    },
+    "delivery_address": {
+      "type": "string",
+      "description": "Delivery address for door-to-door or airport-to-door"
+    },
+    "needed_by_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date item is needed by"
+    },
+    "item_description": {
+      "type": "string",
+      "description": "Description of item to be shipped"
+    },
+    "estimated_weight_kg": {
+      "type": "number",
+      "description": "Estimated weight in kg"
+    },
+    "offered_price": {
+      "type": "number",
+      "description": "Price offered for delivery"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "matched",
+        "completed",
+        "cancelled",
+        "suspended"
+      ],
+      "default": "active",
+      "description": "Status of the request"
+    },
+    "requester_name": {
+      "type": "string",
+      "description": "Name of the requester"
+    },
+    "requester_phone": {
+      "type": "string",
+      "description": "Contact phone number"
+    },
+    "requester_email": {
+      "type": "string",
+      "description": "Email of the requester (workaround for created_by)"
+    },
+    "urgency": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "default": "medium",
+      "description": "How urgent the delivery is"
+    },
+    "is_recommended": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this request is recommended/featured by admin"
+    },
+    "preferred_traveler_emails": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of preferred traveler emails for priority matching"
+    }
+  },
+  "required": [
+    "from_city",
+    "from_country",
+    "to_city",
+    "to_country",
+    "needed_by_date",
+    "item_description",
+    "estimated_weight_kg"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "status": "active"
+        },
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "requester_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "requester_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "requester_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

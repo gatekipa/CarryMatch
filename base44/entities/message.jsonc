@@ -1,0 +1,113 @@
+{
+  "name": "Message",
+  "type": "object",
+  "properties": {
+    "conversation_id": {
+      "type": "string",
+      "description": "ID of the conversation this message belongs to"
+    },
+    "sender_email": {
+      "type": "string",
+      "description": "Email of message sender"
+    },
+    "sender_name": {
+      "type": "string",
+      "description": "Name of message sender"
+    },
+    "receiver_email": {
+      "type": "string",
+      "description": "Email of message receiver"
+    },
+    "content": {
+      "type": "string",
+      "description": "Message content"
+    },
+    "is_read": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether message has been read"
+    },
+    "message_type": {
+      "type": "string",
+      "enum": [
+        "text",
+        "system",
+        "image",
+        "file"
+      ],
+      "default": "text",
+      "description": "Type of message"
+    },
+    "read_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When message was read"
+    },
+    "attachment_url": {
+      "type": "string",
+      "description": "URL of attached file/image"
+    },
+    "attachment_type": {
+      "type": "string",
+      "description": "MIME type of attachment"
+    },
+    "attachment_name": {
+      "type": "string",
+      "description": "Original filename of attachment"
+    },
+    "attachment_size": {
+      "type": "number",
+      "description": "Size of attachment in bytes"
+    },
+    "is_helpful": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether receiver marked message as helpful"
+    },
+    "helpful_marked_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When message was marked helpful"
+    }
+  },
+  "required": [
+    "conversation_id",
+    "sender_email",
+    "receiver_email"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "sender_email": "{{user.email}}"
+        },
+        {
+          "receiver_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "receiver_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

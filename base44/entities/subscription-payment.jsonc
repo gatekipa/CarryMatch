@@ -1,0 +1,124 @@
+{
+  "name": "SubscriptionPayment",
+  "type": "object",
+  "properties": {
+    "vendor_id": {
+      "type": "string",
+      "description": "Reference to Vendor"
+    },
+    "plan_name": {
+      "type": "string",
+      "description": "Plan being purchased"
+    },
+    "billing_period": {
+      "type": "string",
+      "enum": [
+        "MONTHLY",
+        "ANNUAL"
+      ],
+      "default": "MONTHLY",
+      "description": "Billing period"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Payment amount"
+    },
+    "currency": {
+      "type": "string",
+      "default": "USD",
+      "description": "Currency code"
+    },
+    "payment_method": {
+      "type": "string",
+      "enum": [
+        "CASH",
+        "BANK_TRANSFER",
+        "MOMO",
+        "ZELLE",
+        "ONLINE"
+      ],
+      "description": "Payment method"
+    },
+    "payment_reference": {
+      "type": "string",
+      "description": "Transaction reference or receipt number"
+    },
+    "proof_url": {
+      "type": "string",
+      "description": "URL to uploaded payment proof"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "AWAITING_VERIFICATION",
+        "APPROVED",
+        "REJECTED"
+      ],
+      "default": "AWAITING_VERIFICATION",
+      "description": "Payment verification status"
+    },
+    "submitted_by": {
+      "type": "string",
+      "description": "Email of vendor staff who submitted"
+    },
+    "reviewed_by": {
+      "type": "string",
+      "description": "Admin who reviewed the payment"
+    },
+    "reviewed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When payment was reviewed"
+    },
+    "rejection_reason": {
+      "type": "string",
+      "description": "Reason for rejection if applicable"
+    },
+    "redemption_code_id": {
+      "type": "string",
+      "description": "Reference to generated redemption code"
+    }
+  },
+  "required": [
+    "vendor_id",
+    "plan_name",
+    "billing_period",
+    "amount",
+    "payment_method"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "vendor_id": {
+            "$in": [
+              {
+                "field": "vendor_id",
+                "filter": {
+                  "email": "{{user.email}}"
+                },
+                "entity": "VendorStaff"
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "name": "GroupConversation",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Group conversation name"
+    },
+    "participants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "unread_count": {
+            "type": "number",
+            "default": 0
+          },
+          "last_seen": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "description": "List of participants in the group"
+    },
+    "match_id": {
+      "type": "string",
+      "description": "Related match ID for transaction coordination"
+    },
+    "trip_id": {
+      "type": "string",
+      "description": "Related trip ID"
+    },
+    "request_id": {
+      "type": "string",
+      "description": "Related shipment request ID"
+    },
+    "last_message": {
+      "type": "string",
+      "description": "Preview of last message"
+    },
+    "last_message_time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp of last message"
+    },
+    "created_by": {
+      "type": "string",
+      "description": "Email of user who created the group"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether group is active"
+    }
+  },
+  "required": [
+    "participants"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "participants.email": {
+            "$in": [
+              "{{user.email}}"
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "participants.email": {
+            "$in": [
+              "{{user.email}}"
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

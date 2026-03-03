@@ -1,0 +1,141 @@
+{
+  "name": "ShipmentNotificationTemplate",
+  "type": "object",
+  "properties": {
+    "vendor_id": {
+      "type": "string",
+      "description": "Reference to Vendor"
+    },
+    "template_type": {
+      "type": "string",
+      "enum": [
+        "shipment_received",
+        "in_transit",
+        "out_for_delivery",
+        "delivered",
+        "delayed",
+        "on_hold",
+        "customs_clearance",
+        "ready_pickup"
+      ],
+      "description": "Notification event type"
+    },
+    "language": {
+      "type": "string",
+      "enum": [
+        "EN",
+        "FR"
+      ],
+      "default": "EN",
+      "description": "Template language"
+    },
+    "recipient_type": {
+      "type": "string",
+      "enum": [
+        "sender",
+        "recipient",
+        "both"
+      ],
+      "default": "recipient",
+      "description": "Who receives this notification"
+    },
+    "content_text": {
+      "type": "string",
+      "description": "Template content with placeholders: {tracking_code}, {vendor_name}, {sender_name}, {recipient_name}, {sender_city}, {recipient_city}, {status}, {eta}, {current_location}"
+    },
+    "enabled_channels": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "sms",
+          "email",
+          "whatsapp"
+        ]
+      },
+      "default": [
+        "sms"
+      ],
+      "description": "Notification channels enabled"
+    },
+    "auto_send": {
+      "type": "boolean",
+      "default": true,
+      "description": "Automatically send when status changes"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether template is active"
+    }
+  },
+  "required": [
+    "vendor_id",
+    "template_type",
+    "content_text"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "vendor_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "VendorStaff",
+                  "filter": {
+                    "email": "{{user.email}}",
+                    "status": "ACTIVE"
+                  },
+                  "field": "vendor_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "vendor_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "VendorStaff",
+                  "filter": {
+                    "email": "{{user.email}}",
+                    "status": "ACTIVE",
+                    "role": {
+                      "$in": [
+                        "OWNER",
+                        "MANAGER"
+                      ]
+                    }
+                  },
+                  "field": "vendor_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -1,0 +1,125 @@
+{
+  "name": "SavedSearch",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "description": "Email of user who saved this search"
+    },
+    "search_type": {
+      "type": "string",
+      "enum": [
+        "trip",
+        "request"
+      ],
+      "description": "Whether searching for trips or requests"
+    },
+    "from_city": {
+      "type": "string",
+      "description": "Origin city"
+    },
+    "from_country": {
+      "type": "string",
+      "description": "Origin country"
+    },
+    "from_iata": {
+      "type": "string",
+      "description": "Origin airport IATA code"
+    },
+    "to_city": {
+      "type": "string",
+      "description": "Destination city"
+    },
+    "to_country": {
+      "type": "string",
+      "description": "Destination country"
+    },
+    "to_iata": {
+      "type": "string",
+      "description": "Destination airport IATA code"
+    },
+    "max_price_per_kg": {
+      "type": "number",
+      "description": "Maximum price per kg willing to pay"
+    },
+    "min_weight_kg": {
+      "type": "number",
+      "description": "Minimum weight capacity needed"
+    },
+    "date_flexibility_days": {
+      "type": "number",
+      "description": "Number of days flexible on dates (\u00b1)"
+    },
+    "preferred_item_types": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Preferred types of items (electronics, documents, clothing, etc)"
+    },
+    "min_user_rating": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 5,
+      "description": "Minimum user rating required"
+    },
+    "verified_users_only": {
+      "type": "boolean",
+      "default": false,
+      "description": "Only match with verified users"
+    },
+    "notify_on_match": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether to send notifications for matches"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this search is active"
+    }
+  },
+  "required": [
+    "user_email",
+    "search_type"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "user_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

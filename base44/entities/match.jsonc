@@ -1,0 +1,233 @@
+{
+  "name": "Match",
+  "type": "object",
+  "properties": {
+    "trip_id": {
+      "type": "string",
+      "description": "ID of the trip"
+    },
+    "shipment_request_id": {
+      "type": "string",
+      "description": "ID of the shipment request"
+    },
+    "traveler_email": {
+      "type": "string",
+      "description": "Email of the traveler"
+    },
+    "requester_email": {
+      "type": "string",
+      "description": "Email of the requester"
+    },
+    "booking_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "accepted",
+        "declined",
+        "confirmed"
+      ],
+      "default": "pending",
+      "description": "Booking acceptance status"
+    },
+    "initiated_by": {
+      "type": "string",
+      "description": "Email of user who initiated the match"
+    },
+    "agreed_price": {
+      "type": "number",
+      "description": "Final agreed upon price"
+    },
+    "platform_fee": {
+      "type": "number",
+      "default": 5,
+      "description": "Platform fee for the match"
+    },
+    "match_fee_paid": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the platform fee has been paid"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "confirmed",
+        "in_transit",
+        "delivered",
+        "cancelled"
+      ],
+      "default": "pending",
+      "description": "Status of the match"
+    },
+    "tracking_status": {
+      "type": "string",
+      "enum": [
+        "awaiting_pickup",
+        "picked_up",
+        "at_departure_airport",
+        "in_flight",
+        "at_arrival_airport",
+        "out_for_delivery",
+        "delivered"
+      ],
+      "description": "Detailed tracking status"
+    },
+    "tracking_updates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_by": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      },
+      "default": [],
+      "description": "History of tracking status updates"
+    },
+    "proof_of_delivery_url": {
+      "type": "string",
+      "description": "Photo proof of delivery"
+    },
+    "delivered_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Actual delivery timestamp"
+    },
+    "estimated_delivery_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Estimated delivery date"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes about the match"
+    },
+    "delivery_pin_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether sender enabled delivery PIN protection"
+    },
+    "delivery_pin": {
+      "type": "string",
+      "description": "4-digit delivery verification PIN (only visible to sender)"
+    },
+    "delivery_verified": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether delivery was verified with PIN"
+    },
+    "delivery_attempted_without_pin": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether traveler attempted to claim delivery without PIN"
+    },
+    "pin_attempts": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of failed PIN attempts"
+    },
+    "declined_reason": {
+      "type": "string",
+      "description": "Reason for declining the booking"
+    },
+    "can_leave_review": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether users can leave reviews (after completion/cancellation)"
+    },
+    "payment_status": {
+      "type": "string",
+      "enum": [
+        "unpaid",
+        "pending",
+        "paid",
+        "refunded",
+        "failed"
+      ],
+      "description": "Payment status for the platform fee"
+    },
+    "payment_method": {
+      "type": "string",
+      "description": "Payment method used (stripe, paypal, mobile_money, etc.)"
+    },
+    "payment_amount": {
+      "type": "number",
+      "description": "Amount paid in platform currency"
+    },
+    "payment_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When payment was processed"
+    },
+    "payment_reference": {
+      "type": "string",
+      "description": "External payment processor reference ID"
+    }
+  },
+  "required": [
+    "trip_id",
+    "shipment_request_id",
+    "traveler_email",
+    "requester_email",
+    "initiated_by"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "traveler_email": "{{user.email}}"
+        },
+        {
+          "requester_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "traveler_email": "{{user.email}}"
+        },
+        {
+          "requester_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "initiated_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

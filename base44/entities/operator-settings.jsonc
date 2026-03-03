@@ -1,0 +1,152 @@
+{
+  "name": "OperatorSettings",
+  "type": "object",
+  "properties": {
+    "operator_id": {
+      "type": "string",
+      "description": "Reference to BusOperator (unique)"
+    },
+    "online_sales_open_days_ahead": {
+      "type": "number",
+      "default": 60,
+      "description": "Days ahead online sales open"
+    },
+    "offline_sales_open_days_ahead": {
+      "type": "number",
+      "default": 90,
+      "description": "Days ahead offline sales open"
+    },
+    "sales_close_minutes_before_departure": {
+      "type": "number",
+      "default": 30,
+      "description": "Minutes before departure sales close"
+    },
+    "allow_same_day_sales": {
+      "type": "boolean",
+      "default": true,
+      "description": "Allow same-day sales"
+    },
+    "allow_last_minute_online": {
+      "type": "boolean",
+      "default": false,
+      "description": "Allow online sales close to departure"
+    },
+    "boarding_opens_minutes_before_departure": {
+      "type": "number",
+      "default": 45,
+      "description": "When boarding starts"
+    },
+    "no_show_cutoff_minutes": {
+      "type": "number",
+      "default": 10,
+      "description": "Minutes before departure to mark no-show"
+    },
+    "release_requires_admin": {
+      "type": "boolean",
+      "default": true,
+      "description": "Require admin to release blocked seats"
+    },
+    "rebalance_minutes_before_departure": {
+      "type": "number",
+      "default": 60,
+      "description": "Minutes before departure to trigger automatic rebalancing"
+    },
+    "enable_auto_rebalance": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable automatic seat rebalancing"
+    },
+    "reminder_schedule_minutes_before": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "default": [
+        180,
+        60,
+        30
+      ],
+      "description": "Auto-reminder schedule (minutes before departure)"
+    },
+    "reminder_channel_preference": {
+      "type": "string",
+      "enum": [
+        "whatsapp_only",
+        "whatsapp_and_sms"
+      ],
+      "default": "whatsapp_only",
+      "description": "Preferred channel for reminders"
+    },
+    "send_reminders_to": {
+      "type": "string",
+      "enum": [
+        "all_ticket_holders",
+        "not_checked_in_only"
+      ],
+      "default": "not_checked_in_only",
+      "description": "Who receives reminders"
+    }
+  },
+  "required": [
+    "operator_id"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "operator_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "OperatorStaff",
+                  "filter": {
+                    "user_id": "{{user.email}}",
+                    "status": "active"
+                  },
+                  "field": "operator_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "operator_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "OperatorStaff",
+                  "filter": {
+                    "user_id": "{{user.email}}",
+                    "status": "active",
+                    "staff_role": "vendor_bus_operator"
+                  },
+                  "field": "operator_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -1,0 +1,94 @@
+{
+  "name": "SubscriptionPlan",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "enum": [
+        "STARTER",
+        "GROWTH",
+        "PRO",
+        "ENTERPRISE"
+      ],
+      "description": "Plan name"
+    },
+    "display_name": {
+      "type": "string",
+      "description": "Display name for the plan"
+    },
+    "description": {
+      "type": "string",
+      "description": "Plan description"
+    },
+    "monthly_price": {
+      "type": "number",
+      "description": "Monthly price in USD"
+    },
+    "annual_price": {
+      "type": "number",
+      "description": "Annual price in USD (discounted)"
+    },
+    "included_shipments": {
+      "type": "number",
+      "description": "Number of shipments included per month"
+    },
+    "overage_fee": {
+      "type": "number",
+      "description": "Fee per shipment over the included amount"
+    },
+    "included_branches": {
+      "type": "number",
+      "description": "Number of branches/locations included"
+    },
+    "included_staff_seats": {
+      "type": "number",
+      "description": "Number of staff accounts included"
+    },
+    "features": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "List of included features"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this plan is available for purchase"
+    },
+    "is_most_popular": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether to show 'Most Popular' badge"
+    },
+    "sort_order": {
+      "type": "number",
+      "default": 0,
+      "description": "Display order on pricing page"
+    }
+  },
+  "required": [
+    "name",
+    "display_name",
+    "monthly_price",
+    "included_shipments",
+    "overage_fee"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$always": true
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

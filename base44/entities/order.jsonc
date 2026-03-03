@@ -1,0 +1,169 @@
+{
+  "name": "Order",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "Reference to User (buyer)"
+    },
+    "trip_id": {
+      "type": "string",
+      "description": "Reference to Trip"
+    },
+    "operator_id": {
+      "type": "string",
+      "description": "Reference to BusOperator"
+    },
+    "passenger_name": {
+      "type": "string",
+      "description": "Passenger name"
+    },
+    "passenger_phone": {
+      "type": "string",
+      "description": "Passenger phone"
+    },
+    "passenger_id_optional": {
+      "type": "string",
+      "description": "Optional passenger ID number"
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "online"
+      ],
+      "default": "online",
+      "description": "Sales channel"
+    },
+    "order_status": {
+      "type": "string",
+      "enum": [
+        "reserved",
+        "paid",
+        "canceled",
+        "refunded",
+        "expired"
+      ],
+      "default": "reserved",
+      "description": "Order status"
+    },
+    "amount_xaf": {
+      "type": "number",
+      "description": "Total amount"
+    },
+    "fee_xaf": {
+      "type": "number",
+      "description": "Platform fee"
+    },
+    "net_to_operator_xaf": {
+      "type": "number",
+      "description": "Net amount to operator"
+    },
+    "payment_provider": {
+      "type": "string",
+      "description": "Payment provider used"
+    },
+    "payment_reference": {
+      "type": "string",
+      "description": "Payment reference"
+    },
+    "paid_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Payment timestamp"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Reservation expiry"
+    },
+    "cancellation_reason": {
+      "type": "string",
+      "description": "Reason for cancellation"
+    },
+    "canceled_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Cancellation timestamp"
+    },
+    "refunded_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Refund timestamp"
+    }
+  },
+  "required": [
+    "user_id",
+    "trip_id",
+    "operator_id",
+    "passenger_name",
+    "passenger_phone",
+    "amount_xaf"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "user_id": "{{user.email}}"
+        },
+        {
+          "operator_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "OperatorStaff",
+                  "filter": {
+                    "email": "{{user.email}}",
+                    "status": "active"
+                  },
+                  "field": "vendor_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "operator_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "OperatorStaff",
+                  "filter": {
+                    "email": "{{user.email}}",
+                    "status": "active",
+                    "role": {
+                      "$in": [
+                        "OWNER",
+                        "MANAGER"
+                      ]
+                    }
+                  },
+                  "field": "vendor_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

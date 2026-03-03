@@ -1,0 +1,259 @@
+{
+  "name": "Trip",
+  "type": "object",
+  "properties": {
+    "from_city": {
+      "type": "string",
+      "description": "Departure city"
+    },
+    "from_country": {
+      "type": "string",
+      "description": "Departure country"
+    },
+    "from_iata": {
+      "type": "string",
+      "description": "Departure airport IATA code"
+    },
+    "to_city": {
+      "type": "string",
+      "description": "Arrival city"
+    },
+    "to_country": {
+      "type": "string",
+      "description": "Arrival country"
+    },
+    "to_iata": {
+      "type": "string",
+      "description": "Arrival airport IATA code"
+    },
+    "departure_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of departure"
+    },
+    "arrival_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Expected arrival date"
+    },
+    "available_weight_kg": {
+      "type": "number",
+      "description": "Available luggage space in kg"
+    },
+    "price_per_kg": {
+      "type": "number",
+      "description": "Price per kg for delivery"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "matched",
+        "completed",
+        "cancelled"
+      ],
+      "default": "active",
+      "description": "Trip status"
+    },
+    "traveler_name": {
+      "type": "string",
+      "description": "Traveler's name"
+    },
+    "traveler_phone": {
+      "type": "string",
+      "description": "Traveler's contact phone"
+    },
+    "traveler_email": {
+      "type": "string",
+      "description": "Traveler's email"
+    },
+    "additional_info": {
+      "type": "string",
+      "description": "Additional information about the trip"
+    },
+    "is_recommended": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this trip is recommended/featured by admin"
+    },
+    "date_flexible": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether dates can be adjusted"
+    },
+    "flexible_date_range": {
+      "type": "string",
+      "enum": [
+        "\u00b11 day",
+        "\u00b12 days",
+        "\u00b13 days",
+        "\u00b11 week"
+      ],
+      "description": "Date flexibility range"
+    },
+    "delivery_services": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "airport-to-airport",
+          "door-to-door",
+          "airport-to-door",
+          "door-to-airport"
+        ]
+      },
+      "default": [
+        "airport-to-airport"
+      ],
+      "description": "Types of delivery services offered"
+    },
+    "can_pickup_from_address": {
+      "type": "boolean",
+      "default": false,
+      "description": "Willing to pick up from sender's address"
+    },
+    "can_deliver_to_address": {
+      "type": "boolean",
+      "default": false,
+      "description": "Willing to deliver to recipient's address"
+    },
+    "preferred_routes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Frequently traveled routes (e.g., 'NYC-LON', 'LAX-DXB')"
+    },
+    "availability_notes": {
+      "type": "string",
+      "description": "Notes about traveler's availability and preferences"
+    },
+    "operator_id": {
+      "type": "string",
+      "description": "[Bus] Bus operator ID"
+    },
+    "route_id": {
+      "type": "string",
+      "description": "[Bus] Bus route ID"
+    },
+    "vehicle_id": {
+      "type": "string",
+      "description": "[Bus] Vehicle ID"
+    },
+    "driver_id": {
+      "type": "string",
+      "description": "[Bus] Assigned driver ID"
+    },
+    "departure_datetime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "[Bus] Scheduled departure datetime"
+    },
+    "arrival_estimate_datetime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "[Bus] Estimated arrival datetime"
+    },
+    "departure_branch_id": {
+      "type": "string",
+      "description": "[Bus] Departure branch ID"
+    },
+    "arrival_branch_text": {
+      "type": "string",
+      "description": "[Bus] Arrival branch text"
+    },
+    "base_price_xaf": {
+      "type": "number",
+      "description": "[Bus] Base ticket price in XAF"
+    },
+    "trip_status": {
+      "type": "string",
+      "enum": [
+        "scheduled",
+        "boarding",
+        "departed",
+        "in_transit",
+        "arrived",
+        "completed",
+        "canceled",
+        "delayed"
+      ],
+      "description": "[Bus] Trip operational status"
+    },
+    "sales_channels_enabled_json": {
+      "type": "object",
+      "description": "[Bus] Enabled sales channels config"
+    },
+    "online_seat_pool_rule": {
+      "type": "string",
+      "description": "[Bus] Online seat allocation rule"
+    },
+    "emergency_mode_enabled": {
+      "type": "boolean",
+      "description": "[Bus] Emergency mode flag"
+    },
+    "emergency_mode_reason": {
+      "type": "string",
+      "description": "[Bus] Emergency mode reason"
+    }
+  },
+  "required": [
+    "from_city",
+    "from_country",
+    "to_city",
+    "to_country",
+    "departure_date",
+    "available_weight_kg"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "status": "active"
+        },
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "traveler_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "traveler_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "traveler_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

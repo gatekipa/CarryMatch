@@ -1,0 +1,127 @@
+{
+  "name": "Vehicle",
+  "type": "object",
+  "properties": {
+    "operator_id": {
+      "type": "string",
+      "description": "Reference to BusOperator"
+    },
+    "nickname": {
+      "type": "string",
+      "description": "Vehicle nickname (e.g., 'VIP Coach 1')"
+    },
+    "plate_number": {
+      "type": "string",
+      "description": "License plate number (optional)"
+    },
+    "seat_map_template_id": {
+      "type": "string",
+      "description": "Reference to SeatMapTemplate"
+    },
+    "amenities_json": {
+      "type": "object",
+      "description": "Amenities (ac, wifi, usb, restroom)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "maintenance",
+        "retired"
+      ],
+      "default": "active",
+      "description": "Vehicle status"
+    }
+  },
+  "required": [
+    "operator_id",
+    "nickname",
+    "seat_map_template_id"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "$and": [
+            {
+              "status": "active"
+            },
+            {
+              "operator_id": {
+                "$in": [
+                  {
+                    "$query": {
+                      "entity": "BusOperator",
+                      "filter": {
+                        "status": "active"
+                      },
+                      "field": "id"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "operator_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "OperatorStaff",
+                  "filter": {
+                    "email": "{{user.email}}",
+                    "status": "active"
+                  },
+                  "field": "vendor_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "operator_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "OperatorStaff",
+                  "filter": {
+                    "email": "{{user.email}}",
+                    "status": "active",
+                    "role": {
+                      "$in": [
+                        "OWNER",
+                        "MANAGER"
+                      ]
+                    }
+                  },
+                  "field": "vendor_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

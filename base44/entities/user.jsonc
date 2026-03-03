@@ -1,0 +1,503 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "user_type": {
+      "type": "string",
+      "enum": [
+        "carrymatch",
+        "cml_vendor",
+        "bus_consumer",
+        "bus_vendor"
+      ],
+      "default": "carrymatch",
+      "description": "Type of user"
+    },
+    "vendor_id": {
+      "type": "string",
+      "description": "Reference to Vendor if CML staff or BusOperator if bus vendor"
+    },
+    "bus_operator_role": {
+      "type": "string",
+      "enum": [
+        "operator",
+        "agent",
+        "checkin"
+      ],
+      "description": "Role for bus operators: operator (owner), agent (sales), checkin (check-in staff)"
+    },
+    "bio": {
+      "type": "string",
+      "description": "User biography"
+    },
+    "location": {
+      "type": "string",
+      "description": "User location"
+    },
+    "phone": {
+      "type": "string",
+      "description": "User phone number"
+    },
+    "profile_picture_url": {
+      "type": "string",
+      "description": "URL to user's profile picture"
+    },
+    "travel_preferences": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "User's travel preferences"
+    },
+    "languages_spoken": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Languages the user speaks"
+    },
+    "additional_roles": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "moderator",
+          "support_agent",
+          "verified_traveler",
+          "verified_shipper"
+        ]
+      },
+      "default": [],
+      "description": "Additional roles beyond primary role"
+    },
+    "role_permissions": {
+      "type": "object",
+      "properties": {
+        "can_moderate_content": {
+          "type": "boolean",
+          "default": false
+        },
+        "can_handle_disputes": {
+          "type": "boolean",
+          "default": false
+        },
+        "can_verify_users": {
+          "type": "boolean",
+          "default": false
+        },
+        "can_manage_users": {
+          "type": "boolean",
+          "default": false
+        },
+        "can_view_analytics": {
+          "type": "boolean",
+          "default": false
+        },
+        "can_send_admin_messages": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "default": {},
+      "description": "Granular permission flags"
+    },
+    "is_verified": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether user's identity is verified"
+    },
+    "is_featured": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether user is featured"
+    },
+    "trust_score": {
+      "type": "number",
+      "default": 50,
+      "description": "Trust score from 0-100"
+    },
+    "average_rating": {
+      "type": "number",
+      "default": 0,
+      "description": "Average rating from reviews"
+    },
+    "total_reviews": {
+      "type": "number",
+      "default": 0,
+      "description": "Total number of reviews"
+    },
+    "total_trips": {
+      "type": "number",
+      "default": 0,
+      "description": "Total completed trips"
+    },
+    "total_shipments": {
+      "type": "number",
+      "default": 0,
+      "description": "Total shipments sent"
+    },
+    "verification_status": {
+      "type": "string",
+      "enum": [
+        "none",
+        "pending",
+        "approved",
+        "rejected"
+      ],
+      "default": "none",
+      "description": "Identity verification status"
+    },
+    "verification_document_type": {
+      "type": "string",
+      "description": "Type of verification document"
+    },
+    "verification_document_uri": {
+      "type": "string",
+      "description": "URI of verification document"
+    },
+    "verification_documents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "passport",
+              "national_id",
+              "drivers_license",
+              "other"
+            ]
+          },
+          "uri": {
+            "type": "string"
+          },
+          "uploaded_date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "approved",
+              "rejected"
+            ]
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      },
+      "default": [],
+      "description": "Collection of verification documents"
+    },
+    "verification_submitted_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When verification was submitted"
+    },
+    "verification_approved_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When verification was approved"
+    },
+    "verification_rejection_reason": {
+      "type": "string",
+      "description": "Reason for verification rejection"
+    },
+    "is_restricted": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether user is restricted from platform"
+    },
+    "restriction_reason": {
+      "type": "string",
+      "description": "Reason for restriction"
+    },
+    "flags_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of flags against user"
+    },
+    "flag_reasons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Reasons for flags"
+    },
+    "admin_flags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Admin-assigned flags and tags"
+    },
+    "total_messages_sent": {
+      "type": "number",
+      "default": 0,
+      "description": "Total messages sent"
+    },
+    "helpful_message_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Messages marked as helpful"
+    },
+    "messaging_points": {
+      "type": "number",
+      "default": 0,
+      "description": "Points earned from messaging"
+    },
+    "messaging_streak": {
+      "type": "number",
+      "default": 0,
+      "description": "Consecutive days of messaging"
+    },
+    "last_message_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Last date user sent a message"
+    },
+    "is_online": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether user is currently online"
+    },
+    "last_seen": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last time user was active"
+    },
+    "notification_preferences": {
+      "type": "object",
+      "properties": {
+        "shipment_received": {
+          "type": "object",
+          "properties": {
+            "email": {
+              "type": "boolean",
+              "default": true
+            },
+            "sms": {
+              "type": "boolean",
+              "default": false
+            },
+            "push": {
+              "type": "boolean",
+              "default": true
+            }
+          },
+          "default": {
+            "email": true,
+            "sms": false,
+            "push": true
+          }
+        },
+        "shipment_in_transit": {
+          "type": "object",
+          "properties": {
+            "email": {
+              "type": "boolean",
+              "default": true
+            },
+            "sms": {
+              "type": "boolean",
+              "default": false
+            },
+            "push": {
+              "type": "boolean",
+              "default": true
+            }
+          },
+          "default": {
+            "email": true,
+            "sms": false,
+            "push": true
+          }
+        },
+        "shipment_arrived": {
+          "type": "object",
+          "properties": {
+            "email": {
+              "type": "boolean",
+              "default": true
+            },
+            "sms": {
+              "type": "boolean",
+              "default": true
+            },
+            "push": {
+              "type": "boolean",
+              "default": true
+            }
+          },
+          "default": {
+            "email": true,
+            "sms": true,
+            "push": true
+          }
+        },
+        "shipment_ready_pickup": {
+          "type": "object",
+          "properties": {
+            "email": {
+              "type": "boolean",
+              "default": true
+            },
+            "sms": {
+              "type": "boolean",
+              "default": true
+            },
+            "push": {
+              "type": "boolean",
+              "default": true
+            }
+          },
+          "default": {
+            "email": true,
+            "sms": true,
+            "push": true
+          }
+        },
+        "shipment_delivered": {
+          "type": "object",
+          "properties": {
+            "email": {
+              "type": "boolean",
+              "default": true
+            },
+            "sms": {
+              "type": "boolean",
+              "default": false
+            },
+            "push": {
+              "type": "boolean",
+              "default": true
+            }
+          },
+          "default": {
+            "email": true,
+            "sms": false,
+            "push": true
+          }
+        },
+        "shipment_delayed": {
+          "type": "object",
+          "properties": {
+            "email": {
+              "type": "boolean",
+              "default": true
+            },
+            "sms": {
+              "type": "boolean",
+              "default": true
+            },
+            "push": {
+              "type": "boolean",
+              "default": true
+            }
+          },
+          "default": {
+            "email": true,
+            "sms": true,
+            "push": true
+          }
+        },
+        "shipment_on_hold": {
+          "type": "object",
+          "properties": {
+            "email": {
+              "type": "boolean",
+              "default": true
+            },
+            "sms": {
+              "type": "boolean",
+              "default": true
+            },
+            "push": {
+              "type": "boolean",
+              "default": true
+            }
+          },
+          "default": {
+            "email": true,
+            "sms": true,
+            "push": true
+          }
+        },
+        "location_updates": {
+          "type": "object",
+          "properties": {
+            "email": {
+              "type": "boolean",
+              "default": false
+            },
+            "sms": {
+              "type": "boolean",
+              "default": false
+            },
+            "push": {
+              "type": "boolean",
+              "default": true
+            }
+          },
+          "default": {
+            "email": false,
+            "sms": false,
+            "push": true
+          }
+        }
+      },
+      "default": {},
+      "description": "User notification preferences"
+    },
+    "trust_level": {
+      "type": "string",
+      "enum": [
+        "new",
+        "building",
+        "average",
+        "good",
+        "excellent"
+      ],
+      "description": "Trust level derived from trust_score"
+    },
+    "verified_deliveries_count": {
+      "type": "number",
+      "description": "Number of verified deliveries completed"
+    },
+    "pin_violations": {
+      "type": "number",
+      "description": "Number of delivery PIN violation incidents"
+    }
+  },
+  "required": [],
+  "rls": {
+    "create": true,
+    "read": {
+      "$always": true
+    },
+    "update": {
+      "$or": [
+        {
+          "email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

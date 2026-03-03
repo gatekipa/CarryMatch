@@ -1,0 +1,4 @@
+{
+  "name": "releaseExpiredHolds",
+  "entry": "main.ts"
+}

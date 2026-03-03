@@ -1,0 +1,103 @@
+{
+  "name": "AuditLog",
+  "type": "object",
+  "properties": {
+    "actor_user_id": {
+      "type": "string",
+      "description": "User who performed the action"
+    },
+    "operator_id": {
+      "type": "string",
+      "description": "Reference to BusOperator"
+    },
+    "action_type": {
+      "type": "string",
+      "enum": [
+        "seat_sold_online",
+        "seat_sold_offline",
+        "seat_blocked",
+        "seat_unblocked",
+        "seat_force_released",
+        "trip_canceled",
+        "trip_created",
+        "refund_issued",
+        "hold_expired",
+        "passenger_checked_in",
+        "closeout_created",
+        "closeout_adjusted",
+        "promo_code_used",
+        "referral_code_used"
+      ],
+      "description": "Type of action performed"
+    },
+    "entity_type": {
+      "type": "string",
+      "description": "Type of entity affected (Trip, Seat, Order)"
+    },
+    "entity_id": {
+      "type": "string",
+      "description": "ID of affected entity"
+    },
+    "payload_json": {
+      "type": "object",
+      "description": "Additional action details"
+    }
+  },
+  "required": [
+    "actor_user_id",
+    "action_type"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "operator_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "BusOperator",
+                  "filter": {
+                    "created_by": "{{user.email}}"
+                  },
+                  "field": "id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "operator_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "OperatorStaff",
+                  "filter": {
+                    "user_id": "{{user.email}}",
+                    "status": "active"
+                  },
+                  "field": "operator_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

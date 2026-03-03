@@ -1,0 +1,119 @@
+{
+  "name": "ShipmentNotificationLog",
+  "type": "object",
+  "properties": {
+    "vendor_id": {
+      "type": "string",
+      "description": "Reference to Vendor"
+    },
+    "shipment_id": {
+      "type": "string",
+      "description": "Reference to Shipment"
+    },
+    "template_type": {
+      "type": "string",
+      "description": "Type of notification sent"
+    },
+    "recipient_type": {
+      "type": "string",
+      "enum": [
+        "sender",
+        "recipient"
+      ],
+      "description": "Who received the notification"
+    },
+    "recipient_phone": {
+      "type": "string",
+      "description": "Phone number sent to"
+    },
+    "recipient_email": {
+      "type": "string",
+      "description": "Email sent to"
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "sms",
+        "email",
+        "whatsapp"
+      ],
+      "description": "Channel used"
+    },
+    "message_preview": {
+      "type": "string",
+      "description": "Preview of message sent"
+    },
+    "sent_status": {
+      "type": "string",
+      "enum": [
+        "sent",
+        "failed",
+        "pending"
+      ],
+      "default": "sent",
+      "description": "Delivery status"
+    },
+    "error_message": {
+      "type": "string",
+      "description": "Error details if failed"
+    },
+    "triggered_by": {
+      "type": "string",
+      "enum": [
+        "auto",
+        "manual"
+      ],
+      "default": "auto",
+      "description": "How notification was triggered"
+    },
+    "triggered_by_user": {
+      "type": "string",
+      "description": "User who manually triggered (optional)"
+    }
+  },
+  "required": [
+    "vendor_id",
+    "shipment_id",
+    "template_type",
+    "recipient_type",
+    "channel"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "vendor_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "VendorStaff",
+                  "filter": {
+                    "email": "{{user.email}}",
+                    "status": "ACTIVE"
+                  },
+                  "field": "vendor_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

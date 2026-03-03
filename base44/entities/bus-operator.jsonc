@@ -1,0 +1,130 @@
+{
+  "name": "BusOperator",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Display name"
+    },
+    "legal_name": {
+      "type": "string",
+      "description": "Legal company name (optional)"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Contact phone"
+    },
+    "email": {
+      "type": "string",
+      "description": "Contact email"
+    },
+    "logo_url": {
+      "type": "string",
+      "description": "Logo URL"
+    },
+    "hq_city": {
+      "type": "string",
+      "description": "Headquarters city"
+    },
+    "main_station_name": {
+      "type": "string",
+      "description": "Main station name (optional)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "active",
+        "suspended"
+      ],
+      "default": "pending",
+      "description": "Operator status"
+    },
+    "public_slug": {
+      "type": "string",
+      "description": "Unique URL slug"
+    },
+    "payout_method": {
+      "type": "string",
+      "enum": [
+        "momo",
+        "orange",
+        "bank"
+      ],
+      "description": "Payout method"
+    },
+    "payout_details_encrypted": {
+      "type": "string",
+      "description": "Encrypted payout details"
+    },
+    "manifest_template_settings_json": {
+      "type": "object",
+      "description": "Saved manifest template preferences",
+      "default": {
+        "show_phone": true,
+        "show_id_number": false,
+        "show_ticket_code": true,
+        "show_signature": false,
+        "show_baggage": false
+      }
+    },
+    "verification_status": {
+      "type": "string",
+      "enum": [
+        "unverified",
+        "verified"
+      ],
+      "default": "unverified",
+      "description": "Admin verification status"
+    },
+    "verification_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Date of verification"
+    },
+    "created_by": {
+      "type": "string",
+      "description": "Email of user who created the operator"
+    }
+  },
+  "required": [
+    "name",
+    "phone",
+    "email"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "status": "active"
+        },
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

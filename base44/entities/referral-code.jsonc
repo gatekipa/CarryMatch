@@ -1,0 +1,99 @@
+{
+  "name": "ReferralCode",
+  "type": "object",
+  "properties": {
+    "operator_id": {
+      "type": "string",
+      "description": "Reference to BusOperator"
+    },
+    "code": {
+      "type": "string",
+      "description": "Referral code"
+    },
+    "discount_value": {
+      "type": "number",
+      "description": "Discount amount in XAF"
+    },
+    "commission_xaf": {
+      "type": "number",
+      "description": "Commission for referrer"
+    },
+    "issued_to_staff_user_id": {
+      "type": "string",
+      "description": "Staff user who owns this code"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive"
+      ],
+      "default": "active",
+      "description": "Code status"
+    }
+  },
+  "required": [
+    "operator_id",
+    "code",
+    "discount_value"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "operator_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "OperatorStaff",
+                  "filter": {
+                    "user_id": "{{user.email}}",
+                    "status": "active"
+                  },
+                  "field": "operator_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "operator_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "OperatorStaff",
+                  "filter": {
+                    "user_id": "{{user.email}}",
+                    "status": "active",
+                    "staff_role": "vendor_bus_operator"
+                  },
+                  "field": "operator_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

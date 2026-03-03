@@ -1,0 +1,152 @@
+{
+  "name": "Dispute",
+  "type": "object",
+  "properties": {
+    "match_id": {
+      "type": "string",
+      "description": "ID of the match this dispute is about"
+    },
+    "trip_id": {
+      "type": "string",
+      "description": "Related trip ID"
+    },
+    "request_id": {
+      "type": "string",
+      "description": "Related shipment request ID"
+    },
+    "complainant_email": {
+      "type": "string",
+      "description": "Email of person filing the dispute"
+    },
+    "complainant_name": {
+      "type": "string",
+      "description": "Name of person filing the dispute"
+    },
+    "respondent_email": {
+      "type": "string",
+      "description": "Email of the other party"
+    },
+    "respondent_name": {
+      "type": "string",
+      "description": "Name of the other party"
+    },
+    "dispute_type": {
+      "type": "string",
+      "enum": [
+        "item_damaged",
+        "no_show",
+        "wrong_item",
+        "late_delivery",
+        "payment_issue",
+        "other"
+      ],
+      "description": "Type of dispute"
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed description of the issue"
+    },
+    "evidence_urls": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "URLs to evidence photos/documents"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "under_review",
+        "resolved",
+        "closed"
+      ],
+      "default": "open",
+      "description": "Current status of the dispute"
+    },
+    "resolution": {
+      "type": "string",
+      "description": "Details of how the dispute was resolved"
+    },
+    "resolution_outcome": {
+      "type": "string",
+      "enum": [
+        "favor_complainant",
+        "favor_respondent",
+        "split_decision",
+        "no_fault"
+      ],
+      "description": "Who the dispute was resolved in favor of"
+    },
+    "refund_amount": {
+      "type": "number",
+      "default": 0,
+      "description": "Amount refunded as part of resolution"
+    },
+    "penalty_amount": {
+      "type": "number",
+      "default": 0,
+      "description": "Penalty amount imposed"
+    },
+    "penalty_applied_to": {
+      "type": "string",
+      "description": "Email of user who received penalty"
+    },
+    "admin_notes": {
+      "type": "string",
+      "description": "Internal admin notes"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "default": "medium",
+      "description": "Priority level for admin review"
+    },
+    "resolved_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When dispute was resolved"
+    },
+    "resolved_by": {
+      "type": "string",
+      "description": "Admin email who resolved the dispute"
+    }
+  },
+  "required": [
+    "complainant_email",
+    "dispute_type",
+    "description"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "complainant_email": "{{user.email}}"
+        },
+        {
+          "respondent_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

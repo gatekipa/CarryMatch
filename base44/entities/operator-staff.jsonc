@@ -1,0 +1,170 @@
+{
+  "name": "OperatorStaff",
+  "type": "object",
+  "properties": {
+    "operator_id": {
+      "type": "string",
+      "description": "Reference to BusOperator"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "Reference to User (email)"
+    },
+    "staff_role": {
+      "type": "string",
+      "enum": [
+        "vendor_bus_operator",
+        "vendor_bus_agent",
+        "vendor_bus_checkin"
+      ],
+      "description": "Staff role"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive"
+      ],
+      "default": "active",
+      "description": "Staff status"
+    },
+    "pin_hash": {
+      "type": "string",
+      "description": "Hashed PIN for POS access"
+    },
+    "allowed_branches": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of branch IDs staff can access"
+    },
+    "can_refund": {
+      "type": "boolean",
+      "default": false,
+      "description": "Can process refunds"
+    },
+    "can_override_seat_block": {
+      "type": "boolean",
+      "default": false,
+      "description": "Can unblock seats"
+    }
+  },
+  "required": [
+    "operator_id",
+    "user_id",
+    "staff_role"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "user_id": "{{user.email}}"
+        },
+        {
+          "operator_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "BusOperator",
+                  "filter": {
+                    "created_by": "{{user.email}}"
+                  },
+                  "field": "id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "operator_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "OperatorStaff",
+                  "filter": {
+                    "user_id": "{{user.email}}",
+                    "status": "active",
+                    "staff_role": "vendor_bus_operator"
+                  },
+                  "field": "operator_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "operator_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "BusOperator",
+                  "filter": {
+                    "created_by": "{{user.email}}"
+                  },
+                  "field": "id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "operator_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "OperatorStaff",
+                  "filter": {
+                    "user_id": "{{user.email}}",
+                    "status": "active",
+                    "staff_role": "vendor_bus_operator"
+                  },
+                  "field": "operator_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "operator_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "BusOperator",
+                  "filter": {
+                    "created_by": "{{user.email}}"
+                  },
+                  "field": "id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

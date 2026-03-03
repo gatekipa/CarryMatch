@@ -1,0 +1,137 @@
+{
+  "name": "Ticket",
+  "type": "object",
+  "properties": {
+    "order_id": {
+      "type": "string",
+      "description": "Reference to Order"
+    },
+    "ticket_code": {
+      "type": "string",
+      "description": "Short unique ticket code"
+    },
+    "qr_payload": {
+      "type": "string",
+      "description": "QR code data for scanning"
+    },
+    "checkin_status": {
+      "type": "string",
+      "enum": [
+        "not_checked_in",
+        "checked_in"
+      ],
+      "default": "not_checked_in",
+      "description": "Check-in status"
+    },
+    "checkin_time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Check-in timestamp"
+    },
+    "checked_in_by_user_id": {
+      "type": "string",
+      "description": "Staff user who checked in"
+    }
+  },
+  "required": [
+    "order_id",
+    "ticket_code"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "order_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "Order",
+                  "filter": {
+                    "user_id": "{{user.email}}"
+                  },
+                  "field": "id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "order_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "Order",
+                  "filter": {
+                    "operator_id": {
+                      "$in": [
+                        {
+                          "$query": {
+                            "entity": "OperatorStaff",
+                            "filter": {
+                              "email": "{{user.email}}",
+                              "status": "active"
+                            },
+                            "field": "vendor_id"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "field": "id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "order_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "Order",
+                  "filter": {
+                    "operator_id": {
+                      "$in": [
+                        {
+                          "$query": {
+                            "entity": "OperatorStaff",
+                            "filter": {
+                              "email": "{{user.email}}",
+                              "status": "active"
+                            },
+                            "field": "vendor_id"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "field": "id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -1,0 +1,207 @@
+{
+  "name": "Branch",
+  "type": "object",
+  "properties": {
+    "vendor_id": {
+      "type": "string",
+      "description": "Reference to parent Vendor"
+    },
+    "name": {
+      "type": "string",
+      "description": "Branch name (e.g., 'NYC Bus Terminal', 'Douala Warehouse')"
+    },
+    "branch_type": {
+      "type": "string",
+      "enum": [
+        "BUS_STATION",
+        "WAREHOUSE",
+        "PORT_YARD",
+        "OFFICE",
+        "RETAIL_SHOP",
+        "FREIGHT_HUB",
+        "OTHER"
+      ],
+      "default": "OFFICE",
+      "description": "Type of branch/facility"
+    },
+    "country": {
+      "type": "string",
+      "description": "Branch country"
+    },
+    "city": {
+      "type": "string",
+      "description": "Branch city"
+    },
+    "address_line1": {
+      "type": "string",
+      "description": "Primary address line"
+    },
+    "address_line2": {
+      "type": "string",
+      "description": "Secondary address line (apt, suite, etc.)"
+    },
+    "postal_code": {
+      "type": "string",
+      "description": "Postal/ZIP code"
+    },
+    "latitude": {
+      "type": "number",
+      "description": "Location latitude"
+    },
+    "longitude": {
+      "type": "number",
+      "description": "Location longitude"
+    },
+    "contact_phone": {
+      "type": "string",
+      "description": "Branch contact phone"
+    },
+    "contact_email": {
+      "type": "string",
+      "description": "Branch contact email"
+    },
+    "manager_name": {
+      "type": "string",
+      "description": "Branch manager name"
+    },
+    "is_origin_hub": {
+      "type": "boolean",
+      "default": true,
+      "description": "Can accept parcels for shipment"
+    },
+    "is_destination_hub": {
+      "type": "boolean",
+      "default": true,
+      "description": "Can deliver parcels to recipients"
+    },
+    "accepts_walk_ins": {
+      "type": "boolean",
+      "default": true,
+      "description": "Accepts walk-in customers"
+    },
+    "operating_hours": {
+      "type": "string",
+      "description": "Business hours (e.g., 'Mon-Fri 9AM-6PM')"
+    },
+    "max_parcel_weight_kg": {
+      "type": "number",
+      "description": "Maximum parcel weight this branch can handle"
+    },
+    "storage_capacity_m3": {
+      "type": "number",
+      "description": "Storage capacity in cubic meters"
+    },
+    "services_offered": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Services available at this branch (e.g., 'PACKAGING', 'INSURANCE', 'CUSTOMS')"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether branch is currently operational"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes about the branch"
+    }
+  },
+  "required": [
+    "vendor_id",
+    "name",
+    "country",
+    "city"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "active": true
+        },
+        {
+          "vendor_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "VendorStaff",
+                  "filter": {
+                    "email": "{{user.email}}"
+                  },
+                  "field": "vendor_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "vendor_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "VendorStaff",
+                  "filter": {
+                    "email": "{{user.email}}",
+                    "role": {
+                      "$in": [
+                        "OWNER",
+                        "MANAGER"
+                      ]
+                    }
+                  },
+                  "field": "vendor_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "vendor_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "VendorStaff",
+                  "filter": {
+                    "email": "{{user.email}}",
+                    "role": {
+                      "$in": [
+                        "OWNER"
+                      ]
+                    }
+                  },
+                  "field": "vendor_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

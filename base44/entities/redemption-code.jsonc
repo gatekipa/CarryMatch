@@ -1,0 +1,114 @@
+{
+  "name": "RedemptionCode",
+  "type": "object",
+  "properties": {
+    "code": {
+      "type": "string",
+      "description": "Unique redemption code (e.g., CML-GROWTH-9XT73L)"
+    },
+    "vendor_id": {
+      "type": "string",
+      "description": "Vendor this code is for"
+    },
+    "plan_name": {
+      "type": "string",
+      "description": "Plan to activate"
+    },
+    "billing_period": {
+      "type": "string",
+      "enum": [
+        "MONTHLY",
+        "ANNUAL"
+      ],
+      "description": "Billing period"
+    },
+    "payment_id": {
+      "type": "string",
+      "description": "Reference to SubscriptionPayment"
+    },
+    "generated_by": {
+      "type": "string",
+      "description": "Admin who generated the code"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When code was generated"
+    },
+    "sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When code was sent to vendor"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "SENT",
+        "ACTIVATED",
+        "EXPIRED"
+      ],
+      "default": "PENDING",
+      "description": "Code status"
+    },
+    "activated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When code was redeemed"
+    },
+    "activated_by": {
+      "type": "string",
+      "description": "User who redeemed the code"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Code expiration date"
+    }
+  },
+  "required": [
+    "code",
+    "vendor_id",
+    "plan_name",
+    "billing_period",
+    "generated_by"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "activated_by": "{{user.email}}"
+        },
+        {
+          "vendor_id": {
+            "$in": [
+              {
+                "field": "vendor_id",
+                "filter": {
+                  "email": "{{user.email}}"
+                },
+                "entity": "VendorStaff"
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

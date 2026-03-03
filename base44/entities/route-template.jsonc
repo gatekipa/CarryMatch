@@ -1,0 +1,132 @@
+{
+  "name": "RouteTemplate",
+  "type": "object",
+  "properties": {
+    "operator_id": {
+      "type": "string",
+      "description": "Reference to BusOperator"
+    },
+    "template_name": {
+      "type": "string",
+      "description": "Template name"
+    },
+    "origin_city": {
+      "type": "string",
+      "description": "Origin city"
+    },
+    "destination_city": {
+      "type": "string",
+      "description": "Destination city"
+    },
+    "stops_json": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "stop_name": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "order_index": {
+            "type": "number"
+          },
+          "pickup_allowed": {
+            "type": "boolean"
+          },
+          "dropoff_allowed": {
+            "type": "boolean"
+          }
+        }
+      },
+      "description": "Ordered stops with pickup/dropoff flags"
+    },
+    "default_duration_minutes": {
+      "type": "number",
+      "description": "Default trip duration"
+    },
+    "default_departure_branch_id": {
+      "type": "string",
+      "description": "Reference to OperatorBranch"
+    },
+    "default_arrival_branch_text": {
+      "type": "string",
+      "description": "Default arrival location"
+    },
+    "default_baggage_policy_text": {
+      "type": "string",
+      "description": "Baggage policy"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether template is active"
+    }
+  },
+  "required": [
+    "operator_id",
+    "template_name",
+    "origin_city",
+    "destination_city"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "operator_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "OperatorStaff",
+                  "filter": {
+                    "user_id": "{{user.email}}",
+                    "status": "active"
+                  },
+                  "field": "operator_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "operator_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "OperatorStaff",
+                  "filter": {
+                    "user_id": "{{user.email}}",
+                    "status": "active",
+                    "staff_role": "vendor_bus_operator"
+                  },
+                  "field": "operator_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

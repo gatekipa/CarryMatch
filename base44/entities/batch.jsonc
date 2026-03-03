@@ -1,0 +1,220 @@
+{
+  "name": "Batch",
+  "type": "object",
+  "properties": {
+    "vendor_id": {
+      "type": "string",
+      "description": "Reference to Vendor"
+    },
+    "code": {
+      "type": "string",
+      "description": "Batch code (e.g., NYC-CMR-2025-03-01-01)"
+    },
+    "route": {
+      "type": "string",
+      "description": "Route description"
+    },
+    "origin_country": {
+      "type": "string",
+      "description": "Origin country"
+    },
+    "origin_city": {
+      "type": "string",
+      "description": "Origin city"
+    },
+    "destination_country": {
+      "type": "string",
+      "description": "Destination country"
+    },
+    "destination_city": {
+      "type": "string",
+      "description": "Destination city"
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "AIR",
+        "SEA",
+        "ROAD",
+        "BUS",
+        "RAIL"
+      ],
+      "description": "Transport mode"
+    },
+    "origin_branch_id": {
+      "type": "string",
+      "description": "Origin branch"
+    },
+    "destination_branch_id": {
+      "type": "string",
+      "description": "Destination branch"
+    },
+    "cutoff_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Cut-off time for adding shipments"
+    },
+    "etd_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Estimated time of departure"
+    },
+    "eta_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Estimated time of arrival"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "OPEN",
+        "LOCKED",
+        "IN_TRANSIT",
+        "ARRIVED",
+        "CLOSED"
+      ],
+      "default": "OPEN",
+      "description": "Batch status"
+    },
+    "shipment_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of shipments in batch"
+    },
+    "total_weight_kg": {
+      "type": "number",
+      "default": 0,
+      "description": "Total weight of all shipments"
+    },
+    "total_revenue": {
+      "type": "number",
+      "default": 0,
+      "description": "Total expected revenue"
+    },
+    "currency": {
+      "type": "string",
+      "default": "USD",
+      "description": "Currency for revenue calculation"
+    },
+    "locked_by_staff_id": {
+      "type": "string",
+      "description": "Staff member who locked the batch"
+    },
+    "locked_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When batch was locked"
+    },
+    "manifest_generated": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether manifest was generated"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes"
+    },
+    "flight_number": {
+      "type": "string",
+      "description": "Flight/vessel/bus number"
+    },
+    "carrier": {
+      "type": "string",
+      "description": "Carrier/airline/shipping line name"
+    }
+  },
+  "required": [
+    "vendor_id",
+    "code",
+    "origin_branch_id",
+    "status"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "vendor_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "VendorStaff",
+                  "filter": {
+                    "email": "{{user.email}}"
+                  },
+                  "field": "vendor_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "vendor_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "VendorStaff",
+                  "filter": {
+                    "email": "{{user.email}}",
+                    "role": {
+                      "$in": [
+                        "OWNER",
+                        "MANAGER",
+                        "OPS_ORIGIN"
+                      ]
+                    }
+                  },
+                  "field": "vendor_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "vendor_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "VendorStaff",
+                  "filter": {
+                    "email": "{{user.email}}",
+                    "role": {
+                      "$in": [
+                        "OWNER",
+                        "MANAGER"
+                      ]
+                    }
+                  },
+                  "field": "vendor_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

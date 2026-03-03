@@ -1,0 +1,133 @@
+{
+  "name": "ShipmentHistory",
+  "type": "object",
+  "properties": {
+    "shipment_id": {
+      "type": "string",
+      "description": "Reference to Shipment"
+    },
+    "vendor_id": {
+      "type": "string",
+      "description": "Reference to Vendor"
+    },
+    "branch_id": {
+      "type": "string",
+      "description": "Branch where action occurred"
+    },
+    "staff_id": {
+      "type": "string",
+      "description": "Staff member who made the change"
+    },
+    "staff_name": {
+      "type": "string",
+      "description": "Staff member name"
+    },
+    "old_status": {
+      "type": "string",
+      "description": "Previous status"
+    },
+    "new_status": {
+      "type": "string",
+      "description": "New status"
+    },
+    "action_type": {
+      "type": "string",
+      "enum": [
+        "STATUS_CHANGE",
+        "CREATED",
+        "ASSIGNED_TO_BATCH",
+        "PAYMENT_RECORDED",
+        "OTP_VERIFIED",
+        "DELIVERED_FALLBACK"
+      ],
+      "default": "STATUS_CHANGE",
+      "description": "Type of action"
+    },
+    "location": {
+      "type": "object",
+      "properties": {
+        "latitude": {
+          "type": "number"
+        },
+        "longitude": {
+          "type": "number"
+        },
+        "address": {
+          "type": "string"
+        }
+      },
+      "description": "Location coordinates where action occurred"
+    },
+    "note": {
+      "type": "string",
+      "description": "Additional notes"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata (e.g., OTP verification details, fallback info)"
+    }
+  },
+  "required": [
+    "shipment_id",
+    "vendor_id",
+    "staff_id",
+    "action_type"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "vendor_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "VendorStaff",
+                  "filter": {
+                    "email": "{{user.email}}"
+                  },
+                  "field": "vendor_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "shipment_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "Shipment",
+                  "filter": {
+                    "$or": [
+                      {
+                        "sender_email": "{{user.email}}"
+                      },
+                      {
+                        "recipient_email": "{{user.email}}"
+                      }
+                    ]
+                  },
+                  "field": "id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$always": false
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

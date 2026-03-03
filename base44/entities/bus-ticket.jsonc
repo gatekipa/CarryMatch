@@ -1,0 +1,171 @@
+{
+  "name": "BusTicket",
+  "type": "object",
+  "properties": {
+    "trip_id": {
+      "type": "string",
+      "description": "Reference to BusTrip"
+    },
+    "passenger_email": {
+      "type": "string",
+      "description": "Passenger email"
+    },
+    "passenger_name": {
+      "type": "string",
+      "description": "Passenger full name"
+    },
+    "passenger_phone": {
+      "type": "string",
+      "description": "Passenger phone"
+    },
+    "seat_number": {
+      "type": "string",
+      "description": "Assigned seat number"
+    },
+    "ticket_number": {
+      "type": "string",
+      "description": "Unique ticket number"
+    },
+    "price_paid": {
+      "type": "number",
+      "description": "Amount paid in XAF"
+    },
+    "platform_fee": {
+      "type": "number",
+      "default": 500,
+      "description": "Platform fee in XAF"
+    },
+    "payment_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "paid",
+        "refunded"
+      ],
+      "default": "pending",
+      "description": "Payment status"
+    },
+    "payment_method": {
+      "type": "string",
+      "description": "Payment method used"
+    },
+    "booking_status": {
+      "type": "string",
+      "enum": [
+        "confirmed",
+        "checked_in",
+        "boarded",
+        "completed",
+        "cancelled"
+      ],
+      "default": "confirmed",
+      "description": "Ticket booking status"
+    },
+    "checked_in_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Check-in timestamp"
+    },
+    "checked_in_by": {
+      "type": "string",
+      "description": "Agent who checked in passenger"
+    },
+    "qr_code_url": {
+      "type": "string",
+      "description": "QR code for ticket verification"
+    }
+  },
+  "required": [
+    "trip_id",
+    "passenger_email",
+    "passenger_name",
+    "seat_number",
+    "price_paid"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "passenger_email": "{{user.email}}"
+        },
+        {
+          "trip_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "BusTrip",
+                  "filter": {
+                    "operator_id": {
+                      "$in": [
+                        {
+                          "$query": {
+                            "entity": "BusOperator",
+                            "filter": {
+                              "owner_email": "{{user.email}}"
+                            },
+                            "field": "id"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "field": "id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "passenger_email": "{{user.email}}"
+        },
+        {
+          "trip_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "BusTrip",
+                  "filter": {
+                    "operator_id": {
+                      "$in": [
+                        {
+                          "$query": {
+                            "entity": "BusOperator",
+                            "filter": {
+                              "owner_email": "{{user.email}}"
+                            },
+                            "field": "id"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "field": "id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

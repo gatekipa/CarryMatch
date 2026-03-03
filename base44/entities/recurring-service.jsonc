@@ -1,0 +1,168 @@
+{
+  "name": "RecurringService",
+  "type": "object",
+  "properties": {
+    "operator_id": {
+      "type": "string",
+      "description": "Reference to BusOperator"
+    },
+    "service_name": {
+      "type": "string",
+      "description": "Service name"
+    },
+    "route_template_id": {
+      "type": "string",
+      "description": "Reference to RouteTemplate"
+    },
+    "vehicle_id": {
+      "type": "string",
+      "description": "Fixed vehicle (nullable)"
+    },
+    "vehicle_pool_json": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of vehicle IDs to rotate"
+    },
+    "base_price_xaf": {
+      "type": "number",
+      "description": "Base ticket price"
+    },
+    "seat_pricing_rules_json": {
+      "type": "object",
+      "description": "VIP multipliers and seat overrides"
+    },
+    "sales_channels_enabled_json": {
+      "type": "object",
+      "default": {
+        "online": true,
+        "offline": true
+      },
+      "description": "Enabled sales channels"
+    },
+    "online_seat_pool_rule": {
+      "type": "string",
+      "enum": [
+        "all",
+        "subset"
+      ],
+      "default": "all",
+      "description": "Online seat availability"
+    },
+    "subset_seats_json": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Seat codes available online (if subset)"
+    },
+    "departure_time_local": {
+      "type": "string",
+      "description": "HH:MM format"
+    },
+    "days_of_week_json": {
+      "type": "object",
+      "default": {
+        "monday": false,
+        "tuesday": false,
+        "wednesday": false,
+        "thursday": false,
+        "friday": false,
+        "saturday": false,
+        "sunday": false
+      },
+      "description": "Days service runs"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Service start date"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Service end date (optional)"
+    },
+    "generate_days_ahead": {
+      "type": "number",
+      "default": 14,
+      "description": "Days ahead to auto-generate trips"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "paused"
+      ],
+      "default": "active",
+      "description": "Service status"
+    }
+  },
+  "required": [
+    "operator_id",
+    "service_name",
+    "route_template_id",
+    "base_price_xaf",
+    "departure_time_local"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "operator_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "OperatorStaff",
+                  "filter": {
+                    "user_id": "{{user.email}}",
+                    "status": "active"
+                  },
+                  "field": "operator_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "operator_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "OperatorStaff",
+                  "filter": {
+                    "user_id": "{{user.email}}",
+                    "status": "active",
+                    "staff_role": "vendor_bus_operator"
+                  },
+                  "field": "operator_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

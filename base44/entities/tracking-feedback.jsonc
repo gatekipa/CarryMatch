@@ -1,0 +1,138 @@
+{
+  "name": "TrackingFeedback",
+  "type": "object",
+  "properties": {
+    "shipment_id": {
+      "type": "string",
+      "description": "Reference to Shipment"
+    },
+    "tracking_code": {
+      "type": "string",
+      "description": "Tracking code for reference"
+    },
+    "vendor_id": {
+      "type": "string",
+      "description": "Reference to Vendor"
+    },
+    "customer_name": {
+      "type": "string",
+      "description": "Name of person submitting feedback"
+    },
+    "customer_email": {
+      "type": "string",
+      "description": "Email for follow-up"
+    },
+    "customer_phone": {
+      "type": "string",
+      "description": "Phone number"
+    },
+    "feedback_type": {
+      "type": "string",
+      "enum": [
+        "INQUIRY",
+        "ISSUE",
+        "COMPLAINT",
+        "COMPLIMENT"
+      ],
+      "default": "INQUIRY",
+      "description": "Type of feedback"
+    },
+    "message": {
+      "type": "string",
+      "description": "Feedback message"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "REVIEWED",
+        "RESOLVED"
+      ],
+      "default": "PENDING",
+      "description": "Feedback status"
+    },
+    "admin_response": {
+      "type": "string",
+      "description": "Response from vendor staff"
+    },
+    "responded_by": {
+      "type": "string",
+      "description": "Staff member who responded"
+    },
+    "responded_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When response was provided"
+    }
+  },
+  "required": [
+    "tracking_code",
+    "vendor_id",
+    "message"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "customer_email": "{{user.email}}"
+        },
+        {
+          "vendor_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "VendorStaff",
+                  "filter": {
+                    "email": "{{user.email}}"
+                  },
+                  "field": "vendor_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "vendor_id": {
+            "$in": [
+              {
+                "$query": {
+                  "entity": "VendorStaff",
+                  "filter": {
+                    "email": "{{user.email}}",
+                    "role": {
+                      "$in": [
+                        "OWNER",
+                        "MANAGER"
+                      ]
+                    }
+                  },
+                  "field": "vendor_id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
