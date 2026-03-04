@@ -90,8 +90,8 @@ export default function StatusUpdateModal({ match, isOpen, onClose, currentUser 
       return updates;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['match']);
-      queryClient.invalidateQueries(['user-matches']);
+      queryClient.invalidateQueries({ queryKey: ['match'] });
+      queryClient.invalidateQueries({ queryKey: ['user-matches'] });
       onClose();
       setLocation("");
       setNotes("");

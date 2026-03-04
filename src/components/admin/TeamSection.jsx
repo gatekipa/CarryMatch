@@ -44,11 +44,13 @@ export default function TeamSection({ users, currentUser }) {
 
   // Assign roles to an existing user
   const assignRolesMutation = useMutation({
-    mutationFn: async ({ userId, roles }) => {
-      await base44.entities.User.update(userId, { additional_roles: roles });
+    mutationFn: async ({ userId, roles, clearPrimaryRole }) => {
+      const updates = { additional_roles: roles };
+      if (clearPrimaryRole) updates.role = "user";
+      await base44.entities.User.update(userId, updates);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(["sa-users"]);
+      queryClient.invalidateQueries({ queryKey: ["sa-users"] });
       toast.success("Team member roles updated");
       setShowInviteDialog(false);
       setEditingMember(null);
@@ -91,9 +93,10 @@ export default function TeamSection({ users, currentUser }) {
     assignRolesMutation.mutate({ userId, roles: newRoles });
   };
 
-  const handleRemoveAllAccess = (userId) => {
+  const handleRemoveAllAccess = (userId, member) => {
     if (!window.confirm("Remove all admin access for this user?")) return;
-    assignRolesMutation.mutate({ userId, roles: [] });
+    const clearPrimary = STAFF_ROLES.includes(member.role);
+    assignRolesMutation.mutate({ userId, roles: [], clearPrimaryRole: clearPrimary });
   };
 
   // Role stats
@@ -201,7 +204,7 @@ export default function TeamSection({ users, currentUser }) {
                         </Button>
                         {!isCurrentUser && (
                           <Button size="sm" variant="ghost" className="h-7 px-2 text-red-400 hover:text-red-600"
-                            onClick={() => handleRemoveAllAccess(member.id)}>
+                            onClick={() => handleRemoveAllAccess(member.id, member)}>
                             <Trash2 className="w-3 h-3" />
                           </Button>
                         )}

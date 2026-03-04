@@ -220,8 +220,8 @@ export default function VendorOfflineSales() {
       return sale;
     },
     onSuccess: (sale) => {
-      queryClient.invalidateQueries(['offline-seat-inventory']);
-      queryClient.invalidateQueries(['passenger-suggestions']);
+      queryClient.invalidateQueries({ queryKey: ['offline-seat-inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['passenger-suggestions'] });
       toast.success("Sale completed!");
       setShowReceipt(sale);
       setShowOverrideDialog(false);

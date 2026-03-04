@@ -132,7 +132,7 @@ export default function DriverTripControl() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['latest-location']);
+      queryClient.invalidateQueries({ queryKey: ['latest-location'] });
       toast.success("Location updated!");
     },
     onError: (error) => {
@@ -151,7 +151,7 @@ export default function DriverTripControl() {
       });
     },
     onSuccess: (response) => {
-      queryClient.invalidateQueries(['trip-status-updates']);
+      queryClient.invalidateQueries({ queryKey: ['trip-status-updates'] });
       toast.success(`Notification sent to ${response.data.notifications_sent.email} passengers!`);
       setCustomMessage("");
       setDelayMinutes("");

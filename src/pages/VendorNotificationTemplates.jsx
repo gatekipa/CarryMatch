@@ -82,7 +82,7 @@ export default function VendorNotificationTemplates() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['notification-templates']);
+      queryClient.invalidateQueries({ queryKey: ['notification-templates'] });
       toast.success(editingTemplate ? "Template updated!" : "Template created!");
       resetForm();
     }
@@ -91,7 +91,7 @@ export default function VendorNotificationTemplates() {
   const deleteTemplateMutation = useMutation({
     mutationFn: (id) => base44.entities.ShipmentNotificationTemplate.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries(['notification-templates']);
+      queryClient.invalidateQueries({ queryKey: ['notification-templates'] });
       toast.success("Template deleted");
     }
   });

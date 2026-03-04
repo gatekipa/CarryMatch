@@ -30,8 +30,8 @@ export default function MoveSeatsBetweenBranches({ trip, branches, open, onClose
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['trips']);
-      queryClient.invalidateQueries(['rebalance-events']);
+      queryClient.invalidateQueries({ queryKey: ['trips'] });
+      queryClient.invalidateQueries({ queryKey: ['rebalance-events'] });
       toast.success("Seats moved successfully!");
       handleClose();
     },

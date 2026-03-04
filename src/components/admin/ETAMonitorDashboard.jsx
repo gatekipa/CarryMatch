@@ -37,8 +37,8 @@ export default function ETAMonitorDashboard() {
       return response.data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries(['departed-trips-monitor']);
-      queryClient.invalidateQueries(['recent-eta-updates']);
+      queryClient.invalidateQueries({ queryKey: ['departed-trips-monitor'] });
+      queryClient.invalidateQueries({ queryKey: ['recent-eta-updates'] });
       toast.success(`Checked ${data.trips_checked} trips - Updated ${data.etas_updated} ETAs`);
     },
     onError: (error) => {

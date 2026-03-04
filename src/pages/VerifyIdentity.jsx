@@ -194,7 +194,7 @@ export default function VerifyIdentity() {
       });
 
       toast.success("Phone verified successfully!");
-      queryClient.invalidateQueries(['current-user']);
+      queryClient.invalidateQueries({ queryKey: ['current-user'] });
       navigate(createPageUrl("UserProfile", `email=${user.email}`));
     } catch (error) {
       console.error("Error verifying phone code:", error);

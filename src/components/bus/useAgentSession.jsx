@@ -74,7 +74,7 @@ export function useAgentSession(user, operator) {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['active-session']);
+      queryClient.invalidateQueries({ queryKey: ['active-session'] });
       toast.success("Shift started!");
     }
   });
@@ -90,7 +90,7 @@ export function useAgentSession(user, operator) {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['active-session']);
+      queryClient.invalidateQueries({ queryKey: ['active-session'] });
       toast.success("Shift ended");
     }
   });

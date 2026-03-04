@@ -6,7 +6,7 @@ import { queryClientInstance } from '@/lib/query-client'
 import VisualEditAgent from '@/lib/VisualEditAgent'
 import NavigationTracker from '@/lib/NavigationTracker'
 import { pagesConfig } from './pages.config'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import { setupIframeMessaging } from './lib/iframe-messaging';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
@@ -25,6 +25,12 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, isAuthenticated, navigateToLogin } = useAuth();
+  const location = useLocation();
+
+  // Derive active page name from current route
+  const currentPageName = Object.keys(Pages).find(
+    name => location.pathname === `/${name}`
+  ) ?? mainPageKey;
 
   // Show loading spinner while checking app public settings
   if (isLoadingPublicSettings) {
@@ -46,7 +52,7 @@ const AuthenticatedApp = () => {
 
   // Render the main app (both public and authenticated routes)
   return (
-    <LayoutWrapper currentPageName={mainPageKey}>
+    <LayoutWrapper currentPageName={currentPageName}>
       <Suspense fallback={
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">

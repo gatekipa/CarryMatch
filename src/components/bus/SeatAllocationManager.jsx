@@ -137,8 +137,8 @@ export default function SeatAllocationManager({
     },
     onSuccess: (data) => {
       toast.success("Seat allocation saved!");
-      queryClient.invalidateQueries(['allocation-rules']);
-      queryClient.invalidateQueries(['allocations']);
+      queryClient.invalidateQueries({ queryKey: ['allocation-rules'] });
+      queryClient.invalidateQueries({ queryKey: ['allocations'] });
       if (onSave) onSave(data);
     },
     onError: (error) => {

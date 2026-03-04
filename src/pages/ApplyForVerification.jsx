@@ -60,7 +60,7 @@ export default function ApplyForVerification() {
       return await base44.entities.RoleVerificationRequest.create(data);
     },
     onSuccess: async () => {
-      queryClient.invalidateQueries(['role-verification-requests']);
+      queryClient.invalidateQueries({ queryKey: ['role-verification-requests'] });
       
       // Notify admins
       const admins = await base44.entities.User.filter({ role: 'admin' });

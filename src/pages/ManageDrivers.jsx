@@ -62,7 +62,7 @@ export default function ManageDrivers() {
       incidents_json: []
     }),
     onSuccess: () => {
-      queryClient.invalidateQueries(['drivers']);
+      queryClient.invalidateQueries({ queryKey: ['drivers'] });
       toast.success("Driver added!");
       setShowCreateDialog(false);
       resetForm();
@@ -72,7 +72,7 @@ export default function ManageDrivers() {
   const updateDriverMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Driver.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries(['drivers']);
+      queryClient.invalidateQueries({ queryKey: ['drivers'] });
       toast.success("Driver updated!");
       setShowCreateDialog(false);
       setEditingDriver(null);
@@ -107,7 +107,7 @@ export default function ManageDrivers() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['drivers']);
+      queryClient.invalidateQueries({ queryKey: ['drivers'] });
       toast.success("Incident logged!");
       setShowIncidentDialog(false);
       setIncidentDescription("");

@@ -112,7 +112,7 @@ export default function ManageRecurringServices() {
       return await base44.entities.RecurringService.create(payload);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['recurring-services']);
+      queryClient.invalidateQueries({ queryKey: ['recurring-services'] });
       toast.success(editingService ? "Service updated!" : "Service created!");
       resetForm();
     }
@@ -121,7 +121,7 @@ export default function ManageRecurringServices() {
   const toggleServiceStatusMutation = useMutation({
     mutationFn: ({ serviceId, status }) => base44.entities.RecurringService.update(serviceId, { status }),
     onSuccess: () => {
-      queryClient.invalidateQueries(['recurring-services']);
+      queryClient.invalidateQueries({ queryKey: ['recurring-services'] });
       toast.success("Service status updated!");
     }
   });
@@ -129,7 +129,7 @@ export default function ManageRecurringServices() {
   const deleteServiceMutation = useMutation({
     mutationFn: (id) => base44.entities.RecurringService.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries(['recurring-services']);
+      queryClient.invalidateQueries({ queryKey: ['recurring-services'] });
       toast.success("Service deleted");
     }
   });
@@ -143,7 +143,7 @@ export default function ManageRecurringServices() {
       return response.data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries(['trips']);
+      queryClient.invalidateQueries({ queryKey: ['trips'] });
       toast.success(`Generated ${data.trips_created} ${data.trips_created === 1 ? 'trip' : 'trips'}!`);
       setGeneratingFor(null);
     },

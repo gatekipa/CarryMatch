@@ -32,7 +32,7 @@ export default function AdminBusApprovals() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['pending-bus-operators']);
+      queryClient.invalidateQueries({ queryKey: ['pending-bus-operators'] });
     }
   });
 
@@ -43,7 +43,7 @@ export default function AdminBusApprovals() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['pending-bus-operators']);
+      queryClient.invalidateQueries({ queryKey: ['pending-bus-operators'] });
     }
   });
 

@@ -358,7 +358,7 @@ export default function BusCheckout() {
     },
     onSuccess: ({ order }) => {
       paymentCompletedRef.current = true;
-      queryClient.invalidateQueries(['checkout-seats']);
+      queryClient.invalidateQueries({ queryKey: ['checkout-seats'] });
       navigate(createPageUrl("BusTicketConfirmation", `order=${order.id}`));
     },
     onError: (error) => {

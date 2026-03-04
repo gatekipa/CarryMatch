@@ -67,7 +67,7 @@ export default function MessageTemplates() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['message-templates']);
+      queryClient.invalidateQueries({ queryKey: ['message-templates'] });
       toast.success("Template saved!");
     }
   });

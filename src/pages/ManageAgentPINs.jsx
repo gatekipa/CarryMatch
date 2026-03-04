@@ -45,7 +45,7 @@ export default function ManageAgentPINs() {
       return await base44.entities.OperatorStaff.update(staffId, { pin_hash: hash });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['operator-staff']);
+      queryClient.invalidateQueries({ queryKey: ['operator-staff'] });
       toast.success("PIN set successfully!");
       setShowPinDialog(false);
       setSelectedStaff(null);

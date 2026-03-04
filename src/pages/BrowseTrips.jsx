@@ -245,8 +245,8 @@ export default function BrowseTrips() {
       return newSearch;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['saved-searches']);
-      queryClient.invalidateQueries(['notifications']);
+      queryClient.invalidateQueries({ queryKey: ['saved-searches'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
       setShowSaveSearchModal(false);
     },
     onError: (error) => {
@@ -269,7 +269,7 @@ export default function BrowseTrips() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['saved-searches']);
+      queryClient.invalidateQueries({ queryKey: ['saved-searches'] });
     }
   });
 

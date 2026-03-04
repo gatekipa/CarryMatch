@@ -50,7 +50,7 @@ export default function NotificationSettings() {
       await base44.auth.updateMe({ notification_preferences: newPrefs });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['user']);
+      queryClient.invalidateQueries({ queryKey: ['user'] });
       setHasChanges(false);
     }
   });

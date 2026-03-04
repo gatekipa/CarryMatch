@@ -84,7 +84,7 @@ export default function VendorInsuranceClaims() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['insurance-claims']);
+      queryClient.invalidateQueries({ queryKey: ['insurance-claims'] });
       toast.success("Insurance claim filed successfully!");
       resetForm();
     },

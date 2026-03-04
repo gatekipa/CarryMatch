@@ -91,7 +91,7 @@ export default function BatchDetailsDialog({ batch, vendor, vendorStaff, permiss
       refetchShipments();
       onUpdate(); // Propagate batch update to parent
       setScanInput("");
-      queryClient.invalidateQueries(['available-shipments', vendor.id]); // Refresh available shipments
+      queryClient.invalidateQueries({ queryKey: ['available-shipments', vendor.id] }); // Refresh available shipments
     }
   });
 
@@ -115,7 +115,7 @@ export default function BatchDetailsDialog({ batch, vendor, vendorStaff, permiss
     onSuccess: () => {
       refetchShipments();
       onUpdate(); // Propagate batch update to parent
-      queryClient.invalidateQueries(['available-shipments', vendor.id]); // Refresh available shipments
+      queryClient.invalidateQueries({ queryKey: ['available-shipments', vendor.id] }); // Refresh available shipments
     }
   });
 

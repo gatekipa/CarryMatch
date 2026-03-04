@@ -49,7 +49,7 @@ export default function PromoSection({ promoCodes }) {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(["sa-promos"]);
+      queryClient.invalidateQueries({ queryKey: ["sa-promos"] });
       toast.success("Promo code created");
       setShowDialog(false);
       setForm({ code: "", discount_type: "percentage", discount_value: 10, max_uses: 100, usage_limit_per_user: 1, valid_from: "", valid_until: "", operator_id: "PLATFORM" });
@@ -61,12 +61,12 @@ export default function PromoSection({ promoCodes }) {
     mutationFn: async ({ promoId, active }) => {
       await base44.entities.PromoCode.update(promoId, { is_active: active });
     },
-    onSuccess: () => { queryClient.invalidateQueries(["sa-promos"]); toast.success("Promo updated"); }
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["sa-promos"] }); toast.success("Promo updated"); }
   });
 
   const deletePromo = useMutation({
     mutationFn: async (promoId) => { await base44.entities.PromoCode.delete(promoId); },
-    onSuccess: () => { queryClient.invalidateQueries(["sa-promos"]); toast.success("Promo deleted"); }
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["sa-promos"] }); toast.success("Promo deleted"); }
   });
 
   // Scope detection for existing promos
@@ -81,9 +81,10 @@ export default function PromoSection({ promoCodes }) {
   const filtered = promoCodes.filter(p => {
     if (searchTerm && !p.code?.toLowerCase().includes(searchTerm.toLowerCase())) return false;
     if (filterScope !== "all" && getScope(p) !== filterScope) return false;
-    if (filterStatus === "active" && !p.is_active) return false;
-    if (filterStatus === "disabled" && p.is_active) return false;
-    if (filterStatus === "expired" && (!p.valid_until || new Date(p.valid_until) >= new Date())) return false;
+    const isExpired = p.valid_until && new Date(p.valid_until) < new Date();
+    if (filterStatus === "active" && (!p.is_active || isExpired)) return false;
+    if (filterStatus === "disabled" && (p.is_active || isExpired)) return false;
+    if (filterStatus === "expired" && !isExpired) return false;
     return true;
   });
 

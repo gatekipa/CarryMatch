@@ -120,7 +120,7 @@ export default function ManageBusRoutes() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['bus-routes']);
+      queryClient.invalidateQueries({ queryKey: ['bus-routes'] });
       toast.success(editingRoute ? "Route updated!" : "Route created!");
       resetForm();
     }
@@ -129,7 +129,7 @@ export default function ManageBusRoutes() {
   const createStopMutation = useMutation({
     mutationFn: (data) => base44.entities.RouteStop.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries(['route-stops']);
+      queryClient.invalidateQueries({ queryKey: ['route-stops'] });
       toast.success("Stop added!");
       setStopForm({
         stop_name: "",
@@ -144,7 +144,7 @@ export default function ManageBusRoutes() {
   const deleteStopMutation = useMutation({
     mutationFn: (id) => base44.entities.RouteStop.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries(['route-stops']);
+      queryClient.invalidateQueries({ queryKey: ['route-stops'] });
       toast.success("Stop deleted");
     }
   });
@@ -152,7 +152,7 @@ export default function ManageBusRoutes() {
   const deleteRouteMutation = useMutation({
     mutationFn: (id) => base44.entities.BusRoute.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries(['bus-routes']);
+      queryClient.invalidateQueries({ queryKey: ['bus-routes'] });
       toast.success("Route deleted");
     }
   });
@@ -168,7 +168,7 @@ export default function ManageBusRoutes() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['route-templates']);
+      queryClient.invalidateQueries({ queryKey: ['route-templates'] });
       toast.success(editingTemplate ? "Template updated!" : "Template created!");
       resetTemplateForm();
     }
@@ -177,7 +177,7 @@ export default function ManageBusRoutes() {
   const deleteTemplateMutation = useMutation({
     mutationFn: (id) => base44.entities.RouteTemplate.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries(['route-templates']);
+      queryClient.invalidateQueries({ queryKey: ['route-templates'] });
       toast.success("Template deleted");
     }
   });
@@ -195,7 +195,7 @@ export default function ManageBusRoutes() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['route-templates']);
+      queryClient.invalidateQueries({ queryKey: ['route-templates'] });
       toast.success("Route saved as template!");
     }
   });
@@ -221,8 +221,8 @@ export default function ManageBusRoutes() {
       return route;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['bus-routes']);
-      queryClient.invalidateQueries(['route-stops']);
+      queryClient.invalidateQueries({ queryKey: ['bus-routes'] });
+      queryClient.invalidateQueries({ queryKey: ['route-stops'] });
       toast.success("Route created from template!");
       setActiveTab("routes");
     }

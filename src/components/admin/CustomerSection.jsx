@@ -55,7 +55,7 @@ export default function CustomerSection({ users, allData }) {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(["sa-users"]);
+      queryClient.invalidateQueries({ queryKey: ["sa-users"] });
       toast.success("User updated");
     },
     onError: (e) => toast.error("Failed: " + e.message)
@@ -84,7 +84,7 @@ export default function CustomerSection({ users, allData }) {
       await base44.entities.User.update(userId, { trust_score: newScore });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(["sa-users"]);
+      queryClient.invalidateQueries({ queryKey: ["sa-users"] });
       toast.success("Trust score updated");
       setShowTrustDialog(false);
     },
@@ -351,8 +351,11 @@ export default function CustomerSection({ users, allData }) {
             <Textarea value={notifMessage} onChange={(e) => setNotifMessage(e.target.value)}
               placeholder="Enter your message..."
               className="bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white min-h-[100px]" />
-            <Button onClick={() => sendNotifMutation.mutate({ userEmail: customerEmail, message: notifMessage })}
-              disabled={sendNotifMutation.isPending || !notifMessage.trim()}
+            <Button onClick={() => {
+                if (!selectedUser) return;
+                sendNotifMutation.mutate({ userEmail: selectedUser.email || selectedUser.created_by || "", message: notifMessage });
+              }}
+              disabled={sendNotifMutation.isPending || !notifMessage.trim() || !selectedUser}
               className="w-full bg-[#9EFF00] hover:bg-[#7ACC00] text-[#1A1A1A] font-semibold">
               {sendNotifMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Bell className="w-4 h-4 mr-2" />}
               Send
@@ -374,8 +377,11 @@ export default function CustomerSection({ users, allData }) {
                 onChange={(e) => setTrustAdjust(p => ({ ...p, value: parseInt(e.target.value) || 0 }))}
                 className="bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white" />
             </div>
-            <Button onClick={() => updateTrustMutation.mutate({ userId: selectedUser.id, newScore: trustAdjust.value })}
-              disabled={updateTrustMutation.isPending}
+            <Button onClick={() => {
+                if (!selectedUser) return;
+                updateTrustMutation.mutate({ userId: selectedUser.id, newScore: trustAdjust.value });
+              }}
+              disabled={updateTrustMutation.isPending || !selectedUser}
               className="w-full bg-[#9EFF00] hover:bg-[#7ACC00] text-[#1A1A1A] font-semibold">
               Update Trust Score
             </Button>

@@ -108,7 +108,7 @@ export default function RequestDetails() {
     if (isSaved && savedItem) {
       await base44.entities.SavedItem.delete(savedItem.id);
       setIsSaved(false);
-      queryClient.invalidateQueries(['saved-request']);
+      queryClient.invalidateQueries({ queryKey: ['saved-request'] });
     } else {
       await base44.entities.SavedItem.create({
         user_email: user.email,
@@ -120,7 +120,7 @@ export default function RequestDetails() {
         notify_on_update: true
       });
       setIsSaved(true);
-      queryClient.invalidateQueries(['saved-request']);
+      queryClient.invalidateQueries({ queryKey: ['saved-request'] });
     }
   };
 

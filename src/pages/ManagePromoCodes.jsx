@@ -81,7 +81,7 @@ export default function ManagePromoCodes() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['promo-codes']);
+      queryClient.invalidateQueries({ queryKey: ['promo-codes'] });
       toast.success(editingPromo ? "Promo updated!" : "Promo code created!");
       resetForm();
     }
@@ -90,7 +90,7 @@ export default function ManagePromoCodes() {
   const deletePromoMutation = useMutation({
     mutationFn: (id) => base44.entities.PromoCode.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries(['promo-codes']);
+      queryClient.invalidateQueries({ queryKey: ['promo-codes'] });
       toast.success("Promo deleted");
     }
   });

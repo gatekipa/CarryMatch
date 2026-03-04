@@ -173,7 +173,7 @@ export default function DriverApp() {
       return { tripId, status };
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries(['driver-trips']);
+      queryClient.invalidateQueries({ queryKey: ['driver-trips'] });
       if (!data.offline) {
         toast.success("Status updated!");
       }
@@ -592,7 +592,7 @@ export default function DriverApp() {
                             trip={trip} 
                             currentLocation={currentLocation}
                             onETAUpdate={(newETA) => {
-                              queryClient.invalidateQueries(['driver-trips']);
+                              queryClient.invalidateQueries({ queryKey: ['driver-trips'] });
                             }}
                           />
                         )}

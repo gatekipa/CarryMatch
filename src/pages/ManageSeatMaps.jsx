@@ -92,7 +92,7 @@ export default function ManageSeatMaps() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['seat-map-templates']);
+      queryClient.invalidateQueries({ queryKey: ['seat-map-templates'] });
       toast.success(editingTemplate ? "Template updated!" : "Template created!");
       resetForm();
     },
@@ -104,7 +104,7 @@ export default function ManageSeatMaps() {
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.SeatMapTemplate.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries(['seat-map-templates']);
+      queryClient.invalidateQueries({ queryKey: ['seat-map-templates'] });
       toast.success("Template deleted");
     }
   });

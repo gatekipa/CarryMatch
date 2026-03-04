@@ -64,7 +64,7 @@ export default function BusOperatorSettings() {
   const updateOperatorMutation = useMutation({
     mutationFn: (data) => base44.entities.BusOperator.update(operator.id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries(['settings-operator']);
+      queryClient.invalidateQueries({ queryKey: ['settings-operator'] });
       toast.success("Operator info updated!");
     }
   });
@@ -81,7 +81,7 @@ export default function BusOperatorSettings() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['operator-settings']);
+      queryClient.invalidateQueries({ queryKey: ['operator-settings'] });
       toast.success("Settings saved!");
     }
   });

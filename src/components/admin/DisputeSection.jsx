@@ -28,7 +28,7 @@ export default function DisputeSection({ disputes, users }) {
       await base44.entities.Dispute.update(disputeId, updates);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(["sa-disputes"]);
+      queryClient.invalidateQueries({ queryKey: ["sa-disputes"] });
       toast.success("Dispute updated");
       setSelectedDispute(null);
       setResolution("");

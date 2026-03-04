@@ -12,8 +12,16 @@ const AVAILABLE_ROLES = [
     value: "super_admin",
     label: "Super Admin",
     icon: Crown,
-    description: "Full platform control — team management, system config, audit logs",
-    permissions: ["can_manage_team", "can_manage_system_config", "can_view_audit_log", "can_manage_roles"],
+    description: "Full platform control — all permissions including team, billing, system config, audit",
+    permissions: ["can_manage_team", "can_manage_system_config", "can_view_audit_log", "can_manage_roles", "can_moderate_content", "can_handle_disputes", "can_verify_users", "can_manage_users", "can_view_analytics", "can_send_admin_messages", "can_delete_users", "can_edit_any_content", "can_manage_promos", "can_manage_billing"],
+    category: "admin"
+  },
+  {
+    value: "admin",
+    label: "Admin",
+    icon: Shield,
+    description: "Full admin access — same as Super Admin, for legacy role compatibility",
+    permissions: ["can_manage_team", "can_manage_system_config", "can_view_audit_log", "can_manage_roles", "can_moderate_content", "can_handle_disputes", "can_verify_users", "can_manage_users", "can_view_analytics", "can_send_admin_messages", "can_delete_users", "can_edit_any_content", "can_manage_promos", "can_manage_billing"],
     category: "admin"
   },
   {

@@ -139,7 +139,7 @@ export default function BoardingControl() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['boarding-seats']);
+      queryClient.invalidateQueries({ queryKey: ['boarding-seats'] });
       toast.success("Seats released for walk-in sales!");
       setShowReleaseDialog(false);
       setSelectedSeats([]);
@@ -153,7 +153,7 @@ export default function BoardingControl() {
   const openBoardingMutation = useMutation({
     mutationFn: () => base44.entities.Trip.update(tripId, { trip_status: "boarding" }),
     onSuccess: () => {
-      queryClient.invalidateQueries(['boarding-trip']);
+      queryClient.invalidateQueries({ queryKey: ['boarding-trip'] });
       toast.success("Boarding opened!");
     }
   });

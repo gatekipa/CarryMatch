@@ -70,10 +70,10 @@ export default function AnalyticsSection({ data }) {
     return Object.entries(buckets).map(([range, count]) => ({ range, count }));
   }, [users]);
 
-  // Revenue by vertical (pie)
-  const busRevenue = orders.filter(o => o.order_status === "confirmed").reduce((s, o) => s + (o.amount_xaf || 0), 0);
-  const p2pRevenue = matches.filter(m => m.fee_amount).reduce((s, m) => s + (m.fee_amount || 0), 0);
-  const cmlRevenue = shipments.filter(s => s.amount).reduce((s, sh) => s + (sh.amount || 0), 0);
+  // Revenue by vertical (pie) — bus uses order amounts, P2P uses match fees, CML uses shipment amounts
+  const p2pRevenue = matches.filter(m => m.fee_amount != null).reduce((s, m) => s + (m.fee_amount || 0), 0);
+  const cmlRevenue = shipments.filter(s => s.amount != null).reduce((s, sh) => s + (sh.amount || 0), 0);
+  const busRevenue = totalRevenue - p2pRevenue - cmlRevenue;
   const revenuePie = [
     { name: "Bus Tickets", value: busRevenue },
     { name: "P2P Fees", value: p2pRevenue },

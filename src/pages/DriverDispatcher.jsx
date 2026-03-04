@@ -117,7 +117,7 @@ export default function DriverDispatcher() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['dispatch-trips']);
+      queryClient.invalidateQueries({ queryKey: ['dispatch-trips'] });
       toast.success("Driver assigned!");
       setAssignTripDialog(null);
       setSelectedTripForAssignment("");

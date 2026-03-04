@@ -48,7 +48,7 @@ export default function AdminBusSettings() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['all-bus-operators']);
+      queryClient.invalidateQueries({ queryKey: ['all-bus-operators'] });
       toast.success("Operator suspended and trips hidden");
     },
     onError: () => {
@@ -59,7 +59,7 @@ export default function AdminBusSettings() {
   const activateOperatorMutation = useMutation({
     mutationFn: (operatorId) => base44.entities.BusOperator.update(operatorId, { status: "active" }),
     onSuccess: () => {
-      queryClient.invalidateQueries(['all-bus-operators']);
+      queryClient.invalidateQueries({ queryKey: ['all-bus-operators'] });
       toast.success("Operator activated");
     }
   });
@@ -70,7 +70,7 @@ export default function AdminBusSettings() {
       verification_date: new Date().toISOString()
     }),
     onSuccess: () => {
-      queryClient.invalidateQueries(['all-bus-operators']);
+      queryClient.invalidateQueries({ queryKey: ['all-bus-operators'] });
       toast.success("Operator verified");
     }
   });

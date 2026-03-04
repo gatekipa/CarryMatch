@@ -90,8 +90,8 @@ export default function SavedItems() {
   const removeSavedItemMutation = useMutation({
     mutationFn: (itemId) => base44.entities.SavedItem.delete(itemId),
     onSuccess: () => {
-      queryClient.invalidateQueries(['saved-items']);
-      queryClient.invalidateQueries(['enriched-saved-items']);
+      queryClient.invalidateQueries({ queryKey: ['saved-items'] });
+      queryClient.invalidateQueries({ queryKey: ['enriched-saved-items'] });
     }
   });
 
@@ -99,7 +99,7 @@ export default function SavedItems() {
     mutationFn: ({ itemId, notes }) => 
       base44.entities.SavedItem.update(itemId, { notes }),
     onSuccess: () => {
-      queryClient.invalidateQueries(['saved-items']);
+      queryClient.invalidateQueries({ queryKey: ['saved-items'] });
       setEditingNotes(null);
       setNotesText("");
     }

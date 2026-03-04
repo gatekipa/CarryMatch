@@ -33,7 +33,7 @@ export default function RateTrip({ trip, operator, route, order, onComplete }) {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['trip-rating']);
+      queryClient.invalidateQueries({ queryKey: ['trip-rating'] });
       toast.success("Thank you for your feedback!");
       onComplete();
     }

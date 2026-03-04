@@ -84,7 +84,7 @@ export default function DriverSchedule() {
       assigned_trips_json: []
     }),
     onSuccess: () => {
-      queryClient.invalidateQueries(['driver-shifts']);
+      queryClient.invalidateQueries({ queryKey: ['driver-shifts'] });
       toast.success("Shift scheduled!");
       setShowCreateDialog(false);
       setFormData({

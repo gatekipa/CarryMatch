@@ -206,7 +206,7 @@ export default function ManageBusTrips() {
       return trip;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['trips']);
+      queryClient.invalidateQueries({ queryKey: ['trips'] });
       toast.success("Trip created with seat inventory!");
       setShowCreateDialog(false);
       setStep(1);
@@ -249,7 +249,7 @@ export default function ManageBusTrips() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['trips']);
+      queryClient.invalidateQueries({ queryKey: ['trips'] });
       toast.success("Trip status updated!");
     }
   });
@@ -263,7 +263,7 @@ export default function ManageBusTrips() {
       return response.data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries(['trips']);
+      queryClient.invalidateQueries({ queryKey: ['trips'] });
       toast.success(`Cloned ${data.trips_created} ${data.trips_created === 1 ? 'trip' : 'trips'}!`);
       setShowCloneDialog(false);
       setCloningTrip(null);
@@ -280,7 +280,7 @@ export default function ManageBusTrips() {
       return response.data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries(['trips']);
+      queryClient.invalidateQueries({ queryKey: ['trips'] });
       toast.success(`Created ${data.trips_created} ${data.trips_created === 1 ? 'trip' : 'trips'}!`);
       setShowBulkDialog(false);
       setBulkPreview([]);
@@ -301,7 +301,7 @@ export default function ManageBusTrips() {
       return response.data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries(['trips']);
+      queryClient.invalidateQueries({ queryKey: ['trips'] });
       toast.success(data.message);
     },
     onError: (error) => {
@@ -319,7 +319,7 @@ export default function ManageBusTrips() {
       return response.data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries(['trips']);
+      queryClient.invalidateQueries({ queryKey: ['trips'] });
       toast.success(data.message);
       setShowEmergencyDialog(null);
       setEmergencyReason("");

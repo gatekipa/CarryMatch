@@ -148,7 +148,7 @@ export default function VendorBoardingDashboard() {
       return ticket;
     },
     onSuccess: (ticket) => {
-      queryClient.invalidateQueries(['boarding-tickets']);
+      queryClient.invalidateQueries({ queryKey: ['boarding-tickets'] });
       toast.success(`✓ ${ticket.ticket_code} checked in!`);
       setTicketCodeInput("");
     },
@@ -177,7 +177,7 @@ export default function VendorBoardingDashboard() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['boarding-tickets']);
+      queryClient.invalidateQueries({ queryKey: ['boarding-tickets'] });
       toast.success("Check-in undone");
     }
   });
@@ -185,7 +185,7 @@ export default function VendorBoardingDashboard() {
   const updateTripStatusMutation = useMutation({
     mutationFn: ({ status }) => base44.entities.Trip.update(tripId, { trip_status: status }),
     onSuccess: () => {
-      queryClient.invalidateQueries(['boarding-trip']);
+      queryClient.invalidateQueries({ queryKey: ['boarding-trip'] });
       toast.success("Trip status updated!");
     }
   });
@@ -224,7 +224,7 @@ export default function VendorBoardingDashboard() {
       return response.data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries(['boarding-trip']);
+      queryClient.invalidateQueries({ queryKey: ['boarding-trip'] });
       toast.success(data.message);
       setShowDelayModal(false);
       setDelayMinutes("");
@@ -244,7 +244,7 @@ export default function VendorBoardingDashboard() {
       return response.data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries(['boarding-trip']);
+      queryClient.invalidateQueries({ queryKey: ['boarding-trip'] });
       toast.success(data.message);
     },
     onError: (error) => {

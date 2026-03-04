@@ -105,7 +105,7 @@ export default function MyMatches() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['my-matches']);
+      queryClient.invalidateQueries({ queryKey: ['my-matches'] });
     }
   });
 
@@ -182,7 +182,7 @@ export default function MyMatches() {
       return { success: true };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['my-matches']);
+      queryClient.invalidateQueries({ queryKey: ['my-matches'] });
       setPinInput("");
       setShowPinDialog(false);
       toast.success("Delivery verified successfully!");
@@ -199,7 +199,7 @@ export default function MyMatches() {
       });
     },
     onSuccess: async (_, matchId) => {
-      queryClient.invalidateQueries(['my-matches']);
+      queryClient.invalidateQueries({ queryKey: ['my-matches'] });
 
       const match = matches.find(m => m.id === matchId);
       if (match) {
@@ -230,7 +230,7 @@ export default function MyMatches() {
       });
     },
     onSuccess: async (_, variables) => {
-      queryClient.invalidateQueries(['my-matches']);
+      queryClient.invalidateQueries({ queryKey: ['my-matches'] });
 
       const match = matches.find(m => m.id === variables.matchId);
       if (match) {
@@ -269,7 +269,7 @@ export default function MyMatches() {
       });
     },
     onSuccess: async (_, matchId) => {
-      queryClient.invalidateQueries(['my-matches']);
+      queryClient.invalidateQueries({ queryKey: ['my-matches'] });
 
       const match = matches.find(m => m.id === matchId);
       if (match) {
@@ -336,7 +336,7 @@ export default function MyMatches() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['my-matches']);
+      queryClient.invalidateQueries({ queryKey: ['my-matches'] });
     }
   });
 
@@ -348,7 +348,7 @@ export default function MyMatches() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['my-matches']);
+      queryClient.invalidateQueries({ queryKey: ['my-matches'] });
     }
   });
 
@@ -678,7 +678,7 @@ export default function MyMatches() {
                                             delivery_pin_enabled: false,
                                             delivery_pin: null
                                           });
-                                          queryClient.invalidateQueries(['my-matches']);
+                                          queryClient.invalidateQueries({ queryKey: ['my-matches'] });
                                         }
                                       }}
                                       className="data-[state=checked]:bg-green-500"

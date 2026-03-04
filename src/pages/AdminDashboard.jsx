@@ -244,12 +244,12 @@ export default function AdminDashboard() {
       }};
     },
     onSuccess: (result) => {
-      queryClient.invalidateQueries(['admin-users']);
-      queryClient.invalidateQueries(['admin-trips']);
-      queryClient.invalidateQueries(['admin-requests']);
-      queryClient.invalidateQueries(['admin-matches']);
-      queryClient.invalidateQueries(['admin-disputes']);
-      queryClient.invalidateQueries(['admin-reviews']);
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-trips'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-matches'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-disputes'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-reviews'] });
       setUserToDelete(null);
       setViewingUserProfile(null);
       
@@ -267,7 +267,7 @@ export default function AdminDashboard() {
     mutationFn: ({ disputeId, updates }) =>
       base44.entities.Dispute.update(disputeId, updates),
     onSuccess: async (_, variables) => {
-      queryClient.invalidateQueries(['admin-disputes']);
+      queryClient.invalidateQueries({ queryKey: ['admin-disputes'] });
       const dispute = allDisputes.find(d => d.id === variables.disputeId);
       if (dispute && variables.updates.status) {
         await notifyDisputeUpdate(dispute.complainant_email, variables.updates.status, dispute.id);
@@ -291,7 +291,7 @@ export default function AdminDashboard() {
       });
     },
     onSuccess: async (_, variables) => {
-      queryClient.invalidateQueries(['admin-disputes']);
+      queryClient.invalidateQueries({ queryKey: ['admin-disputes'] });
 
       const dispute = allDisputes.find(d => d.id === variables.disputeId);
       if (!dispute) return;
@@ -378,8 +378,8 @@ export default function AdminDashboard() {
       });
     },
     onSuccess: async (_, variables) => {
-      queryClient.invalidateQueries(['admin-user-profile', viewingUserProfile]);
-      queryClient.invalidateQueries(['admin-users']);
+      queryClient.invalidateQueries({ queryKey: ['admin-user-profile', viewingUserProfile] });
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       await base44.entities.Notification.create({
         user_email: variables.email,
         type: "system",
@@ -412,8 +412,8 @@ export default function AdminDashboard() {
       });
     },
     onSuccess: async (_, email) => {
-      queryClient.invalidateQueries(['admin-user-profile', viewingUserProfile]);
-      queryClient.invalidateQueries(['admin-users']);
+      queryClient.invalidateQueries({ queryKey: ['admin-user-profile', viewingUserProfile] });
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       await base44.entities.Notification.create({
         user_email: email,
         type: "system",
@@ -434,7 +434,7 @@ export default function AdminDashboard() {
       });
     },
     onSuccess: async (_, variables) => {
-      queryClient.invalidateQueries(['admin-disputes']);
+      queryClient.invalidateQueries({ queryKey: ['admin-disputes'] });
 
       const dispute = allDisputes.find(d => d.id === variables.disputeId);
       if (dispute) {
@@ -452,8 +452,8 @@ export default function AdminDashboard() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['admin-user-profile', viewingUserProfile]);
-      queryClient.invalidateQueries(['admin-users']);
+      queryClient.invalidateQueries({ queryKey: ['admin-user-profile', viewingUserProfile] });
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       setNewFlag("");
       toast.success("Flag added successfully");
     },
@@ -534,7 +534,7 @@ export default function AdminDashboard() {
       await Promise.all(promises);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['admin-users']);
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       setSelectedUsers([]);
       toast.success("Bulk action completed successfully");
     },
@@ -595,8 +595,8 @@ export default function AdminDashboard() {
   const handleRoleUpdate = async (userToUpdate, updates) => {
     try {
       await base44.entities.User.update(userToUpdate.id, updates);
-      queryClient.invalidateQueries(['admin-users']);
-      queryClient.invalidateQueries(['admin-user-profile', userToUpdate.email]); // Invalidate specific user profile
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-user-profile', userToUpdate.email] }); // Invalidate specific user profile
       setManagingRolesFor(null);
       toast.success(`Roles for ${userToUpdate.full_name || userToUpdate.email} updated successfully!`);
     } catch (error) {
@@ -800,11 +800,11 @@ export default function AdminDashboard() {
               <Button
                 onClick={() => {
                   refetchUsers();
-                  queryClient.invalidateQueries(['admin-disputes']);
-                  queryClient.invalidateQueries(['admin-reviews']);
-                  queryClient.invalidateQueries(['admin-trips']);
-                  queryClient.invalidateQueries(['admin-requests']);
-                  queryClient.invalidateQueries(['admin-matches']);
+                  queryClient.invalidateQueries({ queryKey: ['admin-disputes'] });
+                  queryClient.invalidateQueries({ queryKey: ['admin-reviews'] });
+                  queryClient.invalidateQueries({ queryKey: ['admin-trips'] });
+                  queryClient.invalidateQueries({ queryKey: ['admin-requests'] });
+                  queryClient.invalidateQueries({ queryKey: ['admin-matches'] });
                   toast.success("Dashboard refreshed");
                 }}
                 variant="outline"
@@ -1150,7 +1150,7 @@ export default function AdminDashboard() {
                                             if (currentFlags.some(flag => flag.toLowerCase().includes('flag'))) {
                                                 const updatedFlags = currentFlags.filter(flag => !flag.toLowerCase().includes('flag'));
                                                 await base44.entities.User.update(u.id, { admin_flags: updatedFlags });
-                                                queryClient.invalidateQueries(['admin-users']);
+                                                queryClient.invalidateQueries({ queryKey: ['admin-users'] });
                                                 toast.success("User unflagged successfully.");
                                             } else {
                                                 const reason = prompt("Reason for flagging this user:");

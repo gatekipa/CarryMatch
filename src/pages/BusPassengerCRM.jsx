@@ -82,7 +82,7 @@ export default function BusPassengerCRM() {
   const updatePassengerMutation = useMutation({
     mutationFn: (data) => base44.entities.PassengerProfile.update(selectedPassenger.id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries(['passengers']);
+      queryClient.invalidateQueries({ queryKey: ['passengers'] });
       toast.success("Passenger updated!");
       setShowEditDialog(false);
       setSelectedPassenger(null);

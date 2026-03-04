@@ -69,7 +69,7 @@ export default function ManageBusVehicles() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['vehicles']);
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       toast.success(editingVehicle ? "Vehicle updated!" : "Vehicle added!");
       resetForm();
     }
@@ -78,7 +78,7 @@ export default function ManageBusVehicles() {
   const deleteVehicleMutation = useMutation({
     mutationFn: (id) => base44.entities.Vehicle.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries(['vehicles']);
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       toast.success("Vehicle deleted");
     }
   });

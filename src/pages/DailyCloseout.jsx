@@ -108,7 +108,7 @@ export default function DailyCloseout() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['existing-closeout']);
+      queryClient.invalidateQueries({ queryKey: ['existing-closeout'] });
       toast.success("Closeout completed!");
       setCountedAmounts({ cash: "", momo: "", orange: "", other: "" });
     }
@@ -150,7 +150,7 @@ export default function DailyCloseout() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['existing-closeout']);
+      queryClient.invalidateQueries({ queryKey: ['existing-closeout'] });
       toast.success("Adjustment recorded!");
       setShowAdjustmentDialog(false);
       setAdjustmentAmount("");

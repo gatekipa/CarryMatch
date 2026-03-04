@@ -73,8 +73,8 @@ export default function AdminBusSeatControl() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['admin-seat-inventory']);
-      queryClient.invalidateQueries(['admin-seat-audit']);
+      queryClient.invalidateQueries({ queryKey: ['admin-seat-inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-seat-audit'] });
       toast.success("Seat released");
     }
   });
@@ -101,8 +101,8 @@ export default function AdminBusSeatControl() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['admin-seat-inventory']);
-      queryClient.invalidateQueries(['admin-seat-audit']);
+      queryClient.invalidateQueries({ queryKey: ['admin-seat-inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-seat-audit'] });
       toast.success("Seat blocked");
     }
   });
@@ -128,8 +128,8 @@ export default function AdminBusSeatControl() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['admin-seat-inventory']);
-      queryClient.invalidateQueries(['admin-seat-audit']);
+      queryClient.invalidateQueries({ queryKey: ['admin-seat-inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-seat-audit'] });
       toast.success("Seat unblocked");
     }
   });

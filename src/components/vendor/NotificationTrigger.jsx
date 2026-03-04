@@ -37,7 +37,7 @@ export default function NotificationTrigger({ shipment, compact = false }) {
         toast.info(data.error || "No template configured");
       } else {
         toast.success(data.message);
-        queryClient.invalidateQueries(['notification-logs']);
+        queryClient.invalidateQueries({ queryKey: ['notification-logs'] });
       }
       setShowDialog(false);
     },

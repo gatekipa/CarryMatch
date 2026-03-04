@@ -221,7 +221,7 @@ export default function Layout({ children, currentPageName }) {
 
   // Run auto-flag system periodically
   React.useEffect(() => {
-    if (!user || user.role !== 'admin') return;
+    if (!user || !permissions.isStaff) return;
 
     // Run on mount
     checkAndFlagUsers();

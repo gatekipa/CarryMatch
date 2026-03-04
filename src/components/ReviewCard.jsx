@@ -39,7 +39,7 @@ export default function ReviewCard({ review, currentUser, onUpdate }) {
       await base44.entities.Review.update(review.id, updates);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['user-reviews']);
+      queryClient.invalidateQueries({ queryKey: ['user-reviews'] });
       toast.success("Thank you for your feedback!");
     }
   });
@@ -53,7 +53,7 @@ export default function ReviewCard({ review, currentUser, onUpdate }) {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['user-reviews']);
+      queryClient.invalidateQueries({ queryKey: ['user-reviews'] });
       setShowResponse(false);
       toast.success("Response posted successfully!");
       if (onUpdate) onUpdate();

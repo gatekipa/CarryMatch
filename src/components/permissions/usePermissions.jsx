@@ -133,12 +133,13 @@ export function usePermissions(user) {
       ...(user.additional_roles || [])
     ].filter(Boolean);
 
-    // Merge permissions from all roles
+    // Merge permissions from all roles (preserve numeric values like multipliers)
     const mergedPermissions = allRoles.reduce((acc, role) => {
       const rolePerms = ROLE_PERMISSIONS[role] || {};
       Object.keys(rolePerms).forEach(perm => {
-        if (rolePerms[perm]) {
-          acc[perm] = true;
+        const val = rolePerms[perm];
+        if (val) {
+          acc[perm] = typeof val === 'number' ? val : true;
         }
       });
       return acc;

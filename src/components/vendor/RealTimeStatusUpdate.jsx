@@ -168,8 +168,8 @@ export default function RealTimeStatusUpdate({ shipment, vendorStaff, branch, on
       return updates;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['shipments']);
-      queryClient.invalidateQueries(['shipment-history']);
+      queryClient.invalidateQueries({ queryKey: ['shipments'] });
+      queryClient.invalidateQueries({ queryKey: ['shipment-history'] });
       onSuccess?.();
     }
   });

@@ -99,7 +99,7 @@ export default function VendorSettings() {
     },
     onSuccess: () => {
       toast.success("Settings saved successfully");
-      queryClient.invalidateQueries(['vendor']);
+      queryClient.invalidateQueries({ queryKey: ['vendor'] });
     },
     onError: () => toast.error("Failed to save settings")
   });

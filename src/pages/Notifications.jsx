@@ -48,8 +48,8 @@ export default function Notifications() {
     mutationFn: (notificationId) => 
       base44.entities.Notification.update(notificationId, { is_read: true }),
     onSuccess: () => {
-      queryClient.invalidateQueries(['notifications']);
-      queryClient.invalidateQueries(['unread-notifications']);
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['unread-notifications'] });
     }
   });
 
@@ -63,8 +63,8 @@ export default function Notifications() {
       );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['notifications']);
-      queryClient.invalidateQueries(['unread-notifications']);
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['unread-notifications'] });
     }
   });
 
@@ -72,8 +72,8 @@ export default function Notifications() {
     mutationFn: (notificationId) => 
       base44.entities.Notification.delete(notificationId),
     onSuccess: () => {
-      queryClient.invalidateQueries(['notifications']);
-      queryClient.invalidateQueries(['unread-notifications']);
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['unread-notifications'] });
     }
   });
 

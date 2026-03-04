@@ -163,7 +163,7 @@ export default function VendorBusCheckin() {
       return foundTicket;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['ticket-order']);
+      queryClient.invalidateQueries({ queryKey: ['ticket-order'] });
       toast.success("✅ Passenger checked in successfully!");
       // Keep ticket visible for confirmation
     },

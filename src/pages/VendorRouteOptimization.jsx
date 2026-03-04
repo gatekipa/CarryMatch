@@ -71,7 +71,7 @@ export default function VendorRouteOptimization() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['vendor-routes']);
+      queryClient.invalidateQueries({ queryKey: ['vendor-routes'] });
       toast.success(editingRoute ? "Route updated!" : "Route created!");
       resetForm();
     }
@@ -80,7 +80,7 @@ export default function VendorRouteOptimization() {
   const deleteRouteMutation = useMutation({
     mutationFn: (id) => base44.entities.VendorRoute.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries(['vendor-routes']);
+      queryClient.invalidateQueries({ queryKey: ['vendor-routes'] });
       toast.success("Route deleted");
     }
   });
