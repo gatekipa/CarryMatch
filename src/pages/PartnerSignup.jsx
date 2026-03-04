@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
@@ -8,23 +8,29 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Truck, Building, Mail, Phone, MapPin, Upload, FileText } from "lucide-react";
+import { ArrowLeft, Truck, Building, Mail, Phone, Upload, FileText, LogIn } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { countries, getPhoneCodeByCountry } from "@/components/data/countries";
 import CityAutocomplete from "@/components/cities/CityAutocomplete";
+import CountryPhoneSelect from "@/components/CountryPhoneSelect";
+import AddressAutocomplete from "@/components/address/AddressAutocomplete";
+import { countries } from "@/components/data/countries";
 
 export default function PartnerSignup() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingDoc, setUploadingDoc] = useState(null);
+  const [user, setUser] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false);
+
   const [formData, setFormData] = useState({
     companyName: "",
     businessType: "",
     contactName: "",
     email: "",
     country: "",
+    countryCode: "",
     phoneCode: "",
     phone: "",
     city: "",
@@ -36,13 +42,20 @@ export default function PartnerSignup() {
     insuranceDoc: ""
   });
 
+  // Check auth state early so we can show login prompt before submission
+  useEffect(() => {
+    base44.auth.me()
+      .then((u) => { setUser(u); setAuthChecked(true); })
+      .catch(() => { setUser(null); setAuthChecked(true); });
+  }, []);
+
   const handleFileUpload = async (e, field) => {
     const file = e.target.files[0];
     if (!file) return;
 
     const maxSize = 10 * 1024 * 1024; // 10MB
     const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
-    
+
     if (!allowedTypes.includes(file.type)) {
       toast.error("Only PDF, JPG, and PNG files are allowed");
       e.target.value = '';
@@ -58,7 +71,7 @@ export default function PartnerSignup() {
     setUploadingDoc(field);
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      
+
       if (field === "licenseDocs") {
         setFormData(prev => ({...prev, licenseDocs: [...prev.licenseDocs, file_url]}));
         toast.success("License uploaded successfully");
@@ -111,7 +124,7 @@ export default function PartnerSignup() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateStep()) return;
 
     if (step < 4) {
@@ -119,6 +132,12 @@ export default function PartnerSignup() {
     } else {
       if (uploadingDoc) {
         toast.error("Please wait for file uploads to complete");
+        return;
+      }
+
+      // Check auth before submitting — avoids the "Authentication required" console error
+      if (!user) {
+        toast.error("Please sign in to submit your application");
         return;
       }
 
@@ -168,18 +187,15 @@ export default function PartnerSignup() {
             vendor_id: vendor.id
           });
 
-          // Create the first staff member as OWNER
-          const currentUser = await base44.auth.me();
-          if (currentUser) {
-            await base44.entities.VendorStaff.create({
-              vendor_id: vendor.id,
-              email: currentUser.email,
-              full_name: formData.contactName,
-              role: "OWNER",
-              status: "ACTIVE",
-              invitation_sent_at: new Date().toISOString()
-            });
-          }
+          // Create the first staff member as OWNER — user is guaranteed to exist (checked above)
+          await base44.entities.VendorStaff.create({
+            vendor_id: vendor.id,
+            email: user.email,
+            full_name: formData.contactName,
+            role: "OWNER",
+            status: "ACTIVE",
+            invitation_sent_at: new Date().toISOString()
+          });
         } catch (innerError) {
           // Rollback: delete already-created resources
           try { await base44.entities.Vendor.delete(vendor.id); } catch (_) {}
@@ -200,6 +216,10 @@ export default function PartnerSignup() {
     }
   };
 
+  // Find the selected country's ISO code for Nominatim
+  const selectedCountryObj = countries.find(c => c.name === formData.country);
+  const countryISOCode = selectedCountryObj?.code || formData.countryCode || null;
+
   return (
     <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
@@ -219,6 +239,27 @@ export default function PartnerSignup() {
             </div>
           </div>
 
+          {/* Auth warning banner — shown if user isn't logged in */}
+          {authChecked && !user && (
+            <Card className="p-4 mb-6 bg-amber-500/10 border-amber-500/30">
+              <div className="flex items-center gap-3">
+                <LogIn className="w-5 h-5 text-amber-400 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm text-amber-200 font-medium">Sign in required</p>
+                  <p className="text-xs text-amber-300/70">You can fill out the form, but you'll need to sign in before submitting.</p>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => base44.auth.redirectToLogin()}
+                  className="bg-amber-500 hover:bg-amber-600 text-white text-xs"
+                >
+                  Sign In
+                </Button>
+              </div>
+            </Card>
+          )}
+
           <Card className="p-8 bg-white/5 border-white/10">
             <form onSubmit={handleSubmit} className="space-y-6">
               {step === 1 && (
@@ -228,13 +269,13 @@ export default function PartnerSignup() {
                       <Building className="w-4 h-4" />
                       Company Name *
                     </Label>
-                    <Input 
+                    <Input
                       id="company-name"
-                      required 
-                      value={formData.companyName} 
-                      onChange={(e) => setFormData(prev => ({...prev, companyName: e.target.value}))} 
-                      placeholder="ABC Logistics" 
-                      className="bg-white/5 border-white/10 text-white" 
+                      required
+                      value={formData.companyName}
+                      onChange={(e) => setFormData(prev => ({...prev, companyName: e.target.value}))}
+                      placeholder="ABC Logistics"
+                      className="bg-white/5 border-white/10 text-white"
                     />
                   </div>
                   <div>
@@ -258,13 +299,13 @@ export default function PartnerSignup() {
                   </div>
                   <div>
                     <Label htmlFor="description" className="text-gray-300 mb-2">Description</Label>
-                    <Textarea 
+                    <Textarea
                       id="description"
-                      value={formData.description} 
-                      onChange={(e) => setFormData(prev => ({...prev, description: e.target.value}))} 
-                      placeholder="Describe your business..." 
-                      rows={4} 
-                      className="bg-white/5 border-white/10 text-white" 
+                      value={formData.description}
+                      onChange={(e) => setFormData(prev => ({...prev, description: e.target.value}))}
+                      placeholder="Describe your business..."
+                      rows={4}
+                      className="bg-white/5 border-white/10 text-white"
                     />
                   </div>
                 </>
@@ -274,13 +315,13 @@ export default function PartnerSignup() {
                 <>
                   <div>
                     <Label htmlFor="contact-name" className="text-gray-300 mb-2">Contact Name *</Label>
-                    <Input 
+                    <Input
                       id="contact-name"
-                      required 
-                      value={formData.contactName} 
-                      onChange={(e) => setFormData(prev => ({...prev, contactName: e.target.value}))} 
-                      placeholder="John Doe" 
-                      className="bg-white/5 border-white/10 text-white" 
+                      required
+                      value={formData.contactName}
+                      onChange={(e) => setFormData(prev => ({...prev, contactName: e.target.value}))}
+                      placeholder="John Doe"
+                      className="bg-white/5 border-white/10 text-white"
                     />
                   </div>
                   <div>
@@ -288,46 +329,42 @@ export default function PartnerSignup() {
                       <Mail className="w-4 h-4" />
                       Email *
                     </Label>
-                    <Input 
+                    <Input
                       id="email"
-                      required 
-                      type="email" 
-                      value={formData.email} 
-                      onChange={(e) => setFormData(prev => ({...prev, email: e.target.value}))} 
-                      placeholder="john@company.com" 
-                      className="bg-white/5 border-white/10 text-white" 
+                      required
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData(prev => ({...prev, email: e.target.value}))}
+                      placeholder="john@company.com"
+                      className="bg-white/5 border-white/10 text-white"
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="country" className="text-gray-300 mb-2 flex items-center gap-2">
-                      <MapPin className="w-4 h-4" />
-                      Country *
-                    </Label>
-                    <Select value={formData.country} onValueChange={(value) => {
-                      const phoneCode = getPhoneCodeByCountry(value);
-                      setFormData(prev => ({...prev, country: value, phoneCode: phoneCode || ''}));
-                    }}>
-                      <SelectTrigger className="bg-white/5 border-white/10 text-white">
-                        <SelectValue placeholder="Select country" />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-60">
-                        {countries.map(country => (
-                          <SelectItem key={country.code} value={country.name}>
-                            {country.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+
+                  {/* Searchable country selector with phone code */}
+                  <CountryPhoneSelect
+                    id="country"
+                    label="Country *"
+                    value={formData.country}
+                    onChange={({ name, code, phoneCode }) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        country: name,
+                        countryCode: code,
+                        phoneCode: phoneCode || ""
+                      }));
+                    }}
+                    required
+                  />
+
                   <div className="grid grid-cols-3 gap-3">
                     <div>
                       <Label htmlFor="phone-code" className="text-gray-300 mb-2 text-sm">Code *</Label>
-                      <Input 
+                      <Input
                         id="phone-code"
                         disabled
-                        value={formData.phoneCode} 
-                        placeholder="+1" 
-                        className="bg-white/10 border-white/10 text-white placeholder:text-gray-500 disabled:opacity-70" 
+                        value={formData.phoneCode}
+                        placeholder="+1"
+                        className="bg-white/10 border-white/10 text-white placeholder:text-gray-500 disabled:opacity-70"
                       />
                     </div>
                     <div className="col-span-2">
@@ -335,15 +372,15 @@ export default function PartnerSignup() {
                         <Phone className="w-4 h-4" />
                         Number *
                       </Label>
-                      <Input 
+                      <Input
                         id="phone"
-                        required 
+                        required
                         type="tel"
                         inputMode="numeric"
-                        value={formData.phone} 
-                        onChange={(e) => setFormData(prev => ({...prev, phone: e.target.value.replace(/\D/g, '')}))} 
-                        placeholder="1234567890" 
-                        className="bg-white/5 border-white/10 text-white placeholder:text-gray-500" 
+                        value={formData.phone}
+                        onChange={(e) => setFormData(prev => ({...prev, phone: e.target.value.replace(/\D/g, '')}))}
+                        placeholder="1234567890"
+                        className="bg-white/5 border-white/10 text-white placeholder:text-gray-500"
                       />
                     </div>
                   </div>
@@ -356,9 +393,9 @@ export default function PartnerSignup() {
                     <Label className="text-gray-300 mb-2">Selected Country: <span className="text-[#9EFF00]">{formData.country || 'N/A'}</span></Label>
                   </div>
                   <div>
-                    <Label htmlFor="city" className="text-gray-300 mb-2">City *</Label>
                     <CityAutocomplete
                       id="city"
+                      label="City *"
                       value={formData.city}
                       onChange={(city) => setFormData(prev => ({...prev, city}))}
                       placeholder="e.g. Douala, New York"
@@ -367,15 +404,24 @@ export default function PartnerSignup() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="address" className="text-gray-300 mb-2">Address</Label>
-                    <Textarea 
+                    <AddressAutocomplete
                       id="address"
-                      value={formData.address} 
-                      onChange={(e) => setFormData(prev => ({...prev, address: e.target.value}))} 
-                      placeholder="123 Main St" 
-                      rows={3} 
-                      className="bg-white/5 border-white/10 text-white" 
+                      label="Address"
+                      value={formData.address}
+                      onChange={(address) => setFormData(prev => ({...prev, address}))}
+                      onSelect={(item) => {
+                        // If user picks a suggestion and city is empty, auto-fill city
+                        if (item.city && !formData.city) {
+                          setFormData(prev => ({...prev, city: item.city}));
+                        }
+                      }}
+                      placeholder="Street address, landmark, or describe location"
+                      countryCode={countryISOCode}
+                      includePOI
                     />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Type to search or enter a description — landmarks, businesses, or nearby references are fine
+                    </p>
                   </div>
                 </>
               )}
@@ -383,7 +429,7 @@ export default function PartnerSignup() {
               {step === 4 && (
                 <>
                   <p className="text-sm text-gray-400 mb-4">Upload documents for verification (optional)</p>
-                  
+
                   <div>
                     <Label className="text-gray-300 mb-2 flex items-center gap-2">
                       <FileText className="w-4 h-4" />
