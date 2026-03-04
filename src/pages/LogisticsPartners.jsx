@@ -32,9 +32,20 @@ import { CoverageBackground } from "@/components/CoverageBackground";
 
 export default function LogisticsPartners() {
   const [user, setUser] = React.useState(null);
+  const [isPartner, setIsPartner] = React.useState(false);
 
   React.useEffect(() => {
-    base44.auth.me().then(setUser).catch(() => setUser(null));
+    base44.auth.me()
+      .then(async (u) => {
+        setUser(u);
+        // Check if already a partner (vendor staff OR bus operator)
+        const [vs, bo] = await Promise.all([
+          base44.entities.VendorStaff.filter({ email: u.email, status: "ACTIVE" }).catch(() => []),
+          base44.entities.BusOperator.filter({ created_by: u.email }).catch(() => []),
+        ]);
+        setIsPartner(vs.length > 0 || bo.length > 0);
+      })
+      .catch(() => setUser(null));
   }, []);
 
   const vendorTypes = [
@@ -192,13 +203,20 @@ export default function LogisticsPartners() {
                   <DollarSign className="ml-2 w-5 h-5" />
                 </Button>
               </Link>
-              {user && (
+              {user && isPartner ? (
+                <Link to={createPageUrl("PartnerLogin")}>
+                  <Button size="lg" className="bg-white/10 hover:bg-white/20 text-white px-10 py-6 text-lg font-semibold border border-white/20">
+                    Go to Dashboard
+                    <ArrowRight className="ml-2 w-5 h-5" />
+                  </Button>
+                </Link>
+              ) : user ? (
                 <Link to={createPageUrl("PartnerLogin")}>
                   <Button size="lg" variant="outline" className="border-white/20 text-gray-300 hover:bg-white/5 px-10 py-6 text-lg">
                     Partner Login
                   </Button>
                 </Link>
-              )}
+              ) : null}
             </div>
           </motion.div>
         </div>

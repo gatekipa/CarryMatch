@@ -15,6 +15,7 @@ import CityAutocomplete from "@/components/cities/CityAutocomplete";
 import CountryPhoneSelect from "@/components/CountryPhoneSelect";
 import AddressAutocomplete from "@/components/address/AddressAutocomplete";
 import { countries } from "@/components/data/countries";
+import { formatPhone, stripPhone } from "@/utils/formatPhone";
 
 export default function PartnerSignup() {
   const navigate = useNavigate();
@@ -151,7 +152,7 @@ export default function PartnerSignup() {
           description: formData.description || "",
           primary_contact_name: formData.contactName,
           primary_contact_email: formData.email.toLowerCase(),
-          primary_contact_phone: `${formData.phoneCode}${formData.phone}`,
+          primary_contact_phone: `${formData.phoneCode}${stripPhone(formData.phone)}`,
           hq_country: formData.country,
           hq_city: formData.city,
           address: formData.address || "",
@@ -175,7 +176,7 @@ export default function PartnerSignup() {
             description: formData.description || "",
             contact_name: formData.contactName,
             contact_email: formData.email.toLowerCase(),
-            contact_phone: `${formData.phoneCode}${formData.phone}`,
+            contact_phone: `${formData.phoneCode}${stripPhone(formData.phone)}`,
             hq_country: formData.country,
             hq_city: formData.city,
             address: formData.address || "",
@@ -205,8 +206,8 @@ export default function PartnerSignup() {
           throw innerError;
         }
 
-        toast.success("Application submitted! We'll review it within 24-48 hours.");
-        setTimeout(() => navigate(createPageUrl("LogisticsPartners")), 2000);
+        toast.success("Application submitted! Redirecting to your dashboard...");
+        setTimeout(() => navigate(createPageUrl("VendorDashboard")), 2000);
       } catch (error) {
         console.error("Application error:", error);
         const errorMsg = error?.message || "Failed to submit application. Please check all required fields.";
@@ -376,10 +377,12 @@ export default function PartnerSignup() {
                         id="phone"
                         required
                         type="tel"
-                        inputMode="numeric"
                         value={formData.phone}
-                        onChange={(e) => setFormData(prev => ({...prev, phone: e.target.value.replace(/\D/g, '')}))}
-                        placeholder="1234567890"
+                        onChange={(e) => {
+                          const raw = e.target.value.replace(/[^0-9]/g, "");
+                          setFormData(prev => ({...prev, phone: formatPhone(raw, prev.phoneCode)}));
+                        }}
+                        placeholder="123-456-7890"
                         className="bg-white/5 border-white/10 text-white placeholder:text-gray-500"
                       />
                     </div>

@@ -25,6 +25,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import ShipmentLabel from "@/components/vendor/ShipmentLabel";
 import { logAudit } from "@/components/vendor/AuditLogger";
 import { toast } from "sonner";
+import { formatPhone } from "@/utils/formatPhone";
 
 export default function VendorShipmentIntake() {
   const navigate = useNavigate();
@@ -413,11 +414,13 @@ export default function VendorShipmentIntake() {
                   <Search className="w-4 h-4 text-gray-500 absolute left-3 top-3 z-10" />
                   <Input
                     placeholder="Phone (type to search contacts)"
+                    type="tel"
                     value={formData.sender_phone}
                     onChange={(e) => {
-                      const val = e.target.value;
-                      setFormData({ ...formData, sender_phone: val });
-                      const matches = lookupByPhone(val);
+                      const raw = e.target.value.replace(/[^0-9]/g, "");
+                      const formatted = formatPhone(raw, "+237");
+                      setFormData({ ...formData, sender_phone: formatted });
+                      const matches = lookupByPhone(formatted);
                       setSenderSuggestions(matches);
                       setShowSenderDropdown(matches.length > 0);
                     }}
@@ -494,11 +497,13 @@ export default function VendorShipmentIntake() {
                   <Search className="w-4 h-4 text-gray-500 absolute left-3 top-3 z-10" />
                   <Input
                     placeholder="Phone (type to search contacts)"
+                    type="tel"
                     value={formData.recipient_phone}
                     onChange={(e) => {
-                      const val = e.target.value;
-                      setFormData({ ...formData, recipient_phone: val });
-                      const matches = lookupByPhone(val);
+                      const raw = e.target.value.replace(/[^0-9]/g, "");
+                      const formatted = formatPhone(raw, "+237");
+                      setFormData({ ...formData, recipient_phone: formatted });
+                      const matches = lookupByPhone(formatted);
                       setRecipientSuggestions(matches);
                       setShowRecipientDropdown(matches.length > 0);
                     }}

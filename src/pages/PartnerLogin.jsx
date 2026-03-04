@@ -1,55 +1,81 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { ArrowLeft, Truck, Mail, Lock } from "lucide-react";
+import { ArrowLeft, Truck, Bus, Package, Loader2, LogIn } from "lucide-react";
 import { motion } from "framer-motion";
 
+/**
+ * Unified Partner Login page.
+ *
+ * 1. If already logged in → checks VendorStaff AND BusOperator for the user's email.
+ *    • parcel partner only  → auto-redirect to VendorDashboard
+ *    • bus operator only    → auto-redirect to VendorBusDashboard
+ *    • both                 → show choice buttons
+ *    • neither              → "No partner account" with signup links
+ * 2. If not logged in → single "Sign In" button via Base44 auth.
+ */
 export default function PartnerLogin() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [user, setUser] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [isVendor, setIsVendor] = useState(false);
+  const [isBusOperator, setIsBusOperator] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError("");
-    
-    if (!email || !password) {
-      setError("Please enter both email and password");
-      setIsLoading(false);
-      return;
-    }
+  useEffect(() => {
+    let cancelled = false;
 
-    try {
-      // Check if user is vendor staff before login
-      const vendorStaff = await base44.entities.VendorStaff.filter({
-        email: email.toLowerCase(),
-        status: "ACTIVE"
-      }).catch(() => {
-        // If not found, continue with Base44 auth
-        return [];
-      });
+    async function checkAccess() {
+      try {
+        const currentUser = await base44.auth.me();
+        if (cancelled) return;
+        setUser(currentUser);
+        setChecking(true);
 
-      if (vendorStaff.length === 0) {
-        setError("No active vendor account found. Please apply first or contact support.");
-        setIsLoading(false);
-        return;
+        // Check both partner types in parallel
+        const [vendorStaff, busOperators] = await Promise.all([
+          base44.entities.VendorStaff.filter({ email: currentUser.email, status: "ACTIVE" }).catch(() => []),
+          base44.entities.BusOperator.filter({ created_by: currentUser.email }).catch(() => []),
+        ]);
+
+        if (cancelled) return;
+
+        const hasVendor = vendorStaff.length > 0;
+        const hasBus = busOperators.length > 0;
+        setIsVendor(hasVendor);
+        setIsBusOperator(hasBus);
+
+        // Auto-redirect if only one type
+        if (hasVendor && !hasBus) {
+          navigate(createPageUrl("VendorDashboard"), { replace: true });
+          return;
+        }
+        if (hasBus && !hasVendor) {
+          navigate(createPageUrl("VendorBusDashboard"), { replace: true });
+          return;
+        }
+      } catch {
+        if (!cancelled) setUser(null);
+      } finally {
+        if (!cancelled) { setAuthChecked(true); setChecking(false); }
       }
-
-      // Redirect to Base44 login - will redirect back to vendor dashboard
-      base44.auth.redirectToLogin(`${window.location.origin}${createPageUrl("VendorDashboard")}`);
-    } catch (err) {
-      setError("Authentication check failed. Please try again.");
-      setIsLoading(false);
     }
-  };
+
+    checkAccess();
+    return () => { cancelled = true; };
+  }, [navigate]);
+
+  // Loading state
+  if (!authChecked || checking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8">
@@ -77,52 +103,85 @@ export default function PartnerLogin() {
               <p className="text-gray-400">Access your CML logistics dashboard</p>
             </div>
 
-            {error && (
-              <Card className="p-4 bg-red-500/10 border-red-500/30 mb-6">
-                <p className="text-sm text-red-300">{error}</p>
-              </Card>
+            {/* ── Not logged in ── */}
+            {!user && (
+              <div className="space-y-4">
+                <Button
+                  onClick={() => base44.auth.redirectToLogin(`${window.location.origin}${createPageUrl("PartnerLogin")}`)}
+                  className="w-full bg-gradient-to-r from-[#9EFF00] to-[#7ACC00] hover:from-[#7ACC00] hover:to-[#9EFF00] text-[#1A1A1A] font-bold py-6"
+                >
+                  <LogIn className="w-5 h-5 mr-2" />
+                  Sign In with your Account
+                </Button>
+                <p className="text-xs text-gray-500 text-center">
+                  You'll be redirected to sign in, then brought back here automatically.
+                </p>
+              </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <Label className="text-gray-300 mb-2 flex items-center gap-2">
-                  <Mail className="w-4 h-4" />
-                  Email Address
-                </Label>
-                <Input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="partner@company.com"
-                  className="bg-white/5 border-white/10 text-white placeholder:text-gray-500"
-                />
+            {/* ── Logged in + BOTH partner types ── */}
+            {user && isVendor && isBusOperator && (
+              <div className="space-y-4">
+                <p className="text-sm text-gray-400 text-center mb-4">
+                  Welcome back, <span className="text-white font-medium">{user.full_name || user.email}</span>.
+                  Choose your dashboard:
+                </p>
+                <Button
+                  onClick={() => navigate(createPageUrl("VendorDashboard"))}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-5 justify-start"
+                >
+                  <Package className="w-5 h-5 mr-3" />
+                  <div className="text-left">
+                    <div className="font-semibold">Parcel / Logistics Dashboard</div>
+                    <div className="text-xs opacity-70">Shipments, batches, manifests</div>
+                  </div>
+                </Button>
+                <Button
+                  onClick={() => navigate(createPageUrl("VendorBusDashboard"))}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-5 justify-start"
+                >
+                  <Bus className="w-5 h-5 mr-3" />
+                  <div className="text-left">
+                    <div className="font-semibold">Bus Operations Dashboard</div>
+                    <div className="text-xs opacity-70">Tickets, routes, fleet</div>
+                  </div>
+                </Button>
               </div>
+            )}
 
-              <div>
-                <Label className="text-gray-300 mb-2 flex items-center gap-2">
-                  <Lock className="w-4 h-4" />
-                  Password
-                </Label>
-                <Input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="bg-white/5 border-white/10 text-white placeholder:text-gray-500"
-                />
+            {/* ── Logged in but NO partner account ── */}
+            {user && !isVendor && !isBusOperator && (
+              <div className="space-y-4">
+                <Card className="p-4 bg-amber-500/10 border-amber-500/30">
+                  <p className="text-sm text-amber-200">
+                    No partner account found for <span className="font-medium">{user.email}</span>.
+                  </p>
+                </Card>
+                <p className="text-sm text-gray-400 text-center">
+                  Register as a partner to get started:
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate(createPageUrl("PartnerSignup"))}
+                    className="border-white/10 text-gray-300 hover:bg-white/10 py-5"
+                  >
+                    <Package className="w-4 h-4 mr-2" />
+                    Logistics Partner
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate(createPageUrl("BusOperatorSignup"))}
+                    className="border-white/10 text-gray-300 hover:bg-white/10 py-5"
+                  >
+                    <Bus className="w-4 h-4 mr-2" />
+                    Bus Operator
+                  </Button>
+                </div>
               </div>
+            )}
 
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="w-full bg-gradient-to-r from-[#9EFF00] to-[#7ACC00] hover:from-[#7ACC00] hover:to-[#9EFF00] text-[#1A1A1A] font-bold py-6"
-              >
-                {isLoading ? "Signing In..." : "Sign In"}
-              </Button>
-            </form>
-
+            {/* ── Bottom link ── */}
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-400">
                 Don't have a partner account?{" "}
