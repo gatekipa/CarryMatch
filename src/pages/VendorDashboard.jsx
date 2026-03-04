@@ -73,16 +73,23 @@ export default function VendorDashboard() {
   });
   const [isCustomizing, setIsCustomizing] = useState(false);
 
-  const { data: vendor, error: vendorError, refetch: refetchVendor } = useQuery({
+  const { data: vendor, isLoading: vendorLoading, error: vendorError, refetch: refetchVendor } = useQuery({
     queryKey: ['vendor', vendorStaff?.vendor_id],
     queryFn: async () => {
-      if (!vendorStaff) return null;
-      const vendors = await base44.entities.Vendor.filter({ id: vendorStaff.vendor_id });
-      return vendors[0];
+      if (!vendorStaff?.vendor_id) return null;
+      try {
+        const vendors = await base44.entities.Vendor.filter({ id: vendorStaff.vendor_id });
+        return vendors[0] || null; // return null (not undefined) to avoid React Query error
+      } catch (err) {
+        console.error("[VendorDashboard] Vendor fetch failed for", vendorStaff.vendor_id, err);
+        // If vendor_id is invalid, clear stale localStorage cache so next load retries properly
+        try { localStorage.removeItem("carrymatch_vendor_staff"); } catch {}
+        return null;
+      }
     },
-    enabled: !!vendorStaff,
+    enabled: !!vendorStaff?.vendor_id,
     staleTime: 5 * 60 * 1000,
-    retry: 2
+    retry: 1
   });
 
   const { data: branches = [], error: branchesError } = useQuery({
@@ -301,8 +308,36 @@ export default function VendorDashboard() {
     );
   }
 
-  if (vendorError) {
-    return <QueryErrorFallback error={vendorError} onRetry={refetchVendor} title="Failed to load vendor data" />;
+  // Vendor still loading
+  if (vendorLoading) {
+    return <LoadingCard />;
+  }
+
+  // Vendor fetch failed or vendor_id was invalid — clear cache and let user retry
+  if (vendorError || (!vendor && vendorStaff)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <Card className="p-8 bg-white/5 border-white/10 text-center max-w-md">
+          <AlertCircle className="w-14 h-14 mx-auto mb-4 text-amber-400" />
+          <h2 className="text-2xl font-bold text-white mb-2">Loading Issue</h2>
+          <p className="text-gray-400 text-sm mb-6">
+            Your partner account was found but the vendor data could not be loaded.
+            This can happen with new accounts — please try refreshing.
+          </p>
+          <div className="flex flex-col gap-3">
+            <Button
+              onClick={() => {
+                try { localStorage.removeItem("carrymatch_vendor_staff"); } catch {}
+                window.location.reload();
+              }}
+              className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white"
+            >
+              Refresh Page
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
   }
 
   if (shipmentsError) {
