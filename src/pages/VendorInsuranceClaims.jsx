@@ -93,9 +93,26 @@ export default function VendorInsuranceClaims() {
     }
   });
 
+  const ALLOWED_DOC_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+  const MAX_FILE_SIZE_MB = 10;
+
   const handleFileUpload = async (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
+
+    // Validate all files before uploading
+    for (const file of files) {
+      if (!ALLOWED_DOC_TYPES.includes(file.type)) {
+        toast.error(`"${file.name}" is not allowed. Only PDF, JPEG, PNG, or WebP files are accepted.`);
+        e.target.value = "";
+        return;
+      }
+      if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+        toast.error(`"${file.name}" is too large. Maximum size is ${MAX_FILE_SIZE_MB}MB.`);
+        e.target.value = "";
+        return;
+      }
+    }
 
     setUploading(true);
     try {
@@ -104,15 +121,16 @@ export default function VendorInsuranceClaims() {
         const { file_url } = await base44.integrations.Core.UploadFile({ file });
         uploadedUrls.push(file_url);
       }
-      setFormData({
-        ...formData,
-        supporting_documents: [...formData.supporting_documents, ...uploadedUrls]
-      });
+      setFormData(prev => ({
+        ...prev,
+        supporting_documents: [...(prev.supporting_documents || []), ...uploadedUrls]
+      }));
       toast.success(`${files.length} file(s) uploaded`);
     } catch (error) {
       toast.error("Upload failed");
     } finally {
       setUploading(false);
+      e.target.value = "";
     }
   };
 
@@ -390,7 +408,7 @@ export default function VendorInsuranceClaims() {
                   <input
                     type="file"
                     multiple
-                    accept="image/*,.pdf"
+                    accept=".pdf,.jpg,.jpeg,.png,.webp"
                     className="hidden"
                     onChange={handleFileUpload}
                   />

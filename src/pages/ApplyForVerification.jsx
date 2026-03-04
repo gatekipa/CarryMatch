@@ -84,14 +84,31 @@ export default function ApplyForVerification() {
     }
   });
 
+  const ALLOWED_DOC_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+  const MAX_FILE_SIZE_MB = 10;
+
   const handleFileUpload = async (e, docType) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Validate file type
+    if (!ALLOWED_DOC_TYPES.includes(file.type)) {
+      toast.error("Invalid file type. Please upload a PDF, JPEG, PNG, or WebP file.");
+      e.target.value = "";
+      return;
+    }
+
+    // Validate file size
+    if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+      toast.error(`File too large. Maximum size is ${MAX_FILE_SIZE_MB}MB.`);
+      e.target.value = "";
+      return;
+    }
+
     setIsUploading(true);
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      
+
       setUploadedDocuments(prev => [...prev, {
         type: docType,
         url: file_url,
@@ -102,6 +119,7 @@ export default function ApplyForVerification() {
       toast.error("Failed to upload file");
     } finally {
       setIsUploading(false);
+      e.target.value = "";
     }
   };
 
@@ -370,7 +388,7 @@ export default function ApplyForVerification() {
                         <input
                           type="file"
                           onChange={(e) => handleFileUpload(e, "Travel History")}
-                          accept="image/*,.pdf"
+                          accept=".pdf,.jpg,.jpeg,.png,.webp"
                           className="hidden"
                           disabled={isUploading}
                         />
@@ -385,7 +403,7 @@ export default function ApplyForVerification() {
                         <input
                           type="file"
                           onChange={(e) => handleFileUpload(e, "Proof of Transactions")}
-                          accept="image/*,.pdf"
+                          accept=".pdf,.jpg,.jpeg,.png,.webp"
                           className="hidden"
                           disabled={isUploading}
                         />

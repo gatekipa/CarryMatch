@@ -12,6 +12,9 @@ import { Bus, Building, MapPin, Phone, Mail, Upload, CheckCircle, ArrowRight } f
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const MAX_IMAGE_SIZE_MB = 5;
+
 export default function BusOperatorSignup() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
@@ -58,6 +61,27 @@ export default function BusOperatorSignup() {
   }, [existingOperator, navigate]);
 
   const uploadLogo = async (file) => {
+    if (!file) return;
+
+    const resetFileInput = () => {
+      const input = document.getElementById('logo-upload');
+      if (input) input.value = '';
+    };
+
+    // Validate file type
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      toast.error("Invalid file type. Please upload a JPEG, PNG, or WebP image.");
+      resetFileInput();
+      return;
+    }
+
+    // Validate file size
+    if (file.size > MAX_IMAGE_SIZE_MB * 1024 * 1024) {
+      toast.error(`File too large. Maximum size is ${MAX_IMAGE_SIZE_MB}MB.`);
+      resetFileInput();
+      return;
+    }
+
     setUploading(true);
     try {
       const result = await base44.integrations.Core.UploadFile({ file });
@@ -270,7 +294,7 @@ export default function BusOperatorSignup() {
                   <input
                     type="file"
                     id="logo-upload"
-                    accept="image/*"
+                    accept=".jpg,.jpeg,.png,.webp"
                     onChange={(e) => uploadLogo(e.target.files[0])}
                     className="hidden"
                   />

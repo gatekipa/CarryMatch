@@ -39,23 +39,42 @@ export default function SubmitDispute() {
     });
   }, []);
 
+  const ALLOWED_DOC_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+  const MAX_FILE_SIZE_MB = 10;
+
   const handleFileUpload = async (e) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
+    // Validate all files before uploading
+    for (const file of files) {
+      if (!ALLOWED_DOC_TYPES.includes(file.type)) {
+        toast.error(`"${file.name}" is not allowed. Only PDF, JPEG, PNG, or WebP files are accepted.`);
+        e.target.value = "";
+        return;
+      }
+      if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+        toast.error(`"${file.name}" is too large. Maximum size is ${MAX_FILE_SIZE_MB}MB.`);
+        e.target.value = "";
+        return;
+      }
+    }
+
     setIsUploading(true);
     try {
-      const uploadPromises = files.map(file => 
+      const uploadPromises = files.map(file =>
         base44.integrations.Core.UploadFile({ file })
       );
       const results = await Promise.all(uploadPromises);
       const urls = results.map(r => r.file_url);
-      setEvidenceUrls([...evidenceUrls, ...urls]);
+      setEvidenceUrls(prev => [...prev, ...urls]);
     } catch (error) {
       console.error("Error uploading files:", error);
       toast.error("Failed to upload some files. Please try again.");
+    } finally {
+      setIsUploading(false);
+      e.target.value = "";
     }
-    setIsUploading(false);
   };
 
   const handleSubmit = async (e) => {
@@ -203,7 +222,7 @@ export default function SubmitDispute() {
                     type="file"
                     id="evidence"
                     multiple
-                    accept="image/*,.pdf"
+                    accept=".pdf,.jpg,.jpeg,.png,.webp"
                     onChange={handleFileUpload}
                     className="hidden"
                   />

@@ -17,6 +17,9 @@ import {
 import { Upload, Loader2, MapPin } from "lucide-react";
 import { TRACKING_STAGES } from "./ShipmentTracker";
 
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const MAX_IMAGE_SIZE_MB = 5;
+
 export default function StatusUpdateModal({ match, isOpen, onClose, currentUser }) {
   const queryClient = useQueryClient();
   const [newStatus, setNewStatus] = useState(match.tracking_status || "awaiting_pickup");
@@ -195,8 +198,22 @@ export default function StatusUpdateModal({ match, isOpen, onClose, currentUser 
               <input
                 type="file"
                 id="proof-photo"
-                accept="image/*"
-                onChange={(e) => setProofPhoto(e.target.files[0])}
+                accept=".jpg,.jpeg,.png,.webp"
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (!file) return;
+                  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+                    toast.error("Invalid file type. Please upload a JPEG, PNG, or WebP image.");
+                    e.target.value = "";
+                    return;
+                  }
+                  if (file.size > MAX_IMAGE_SIZE_MB * 1024 * 1024) {
+                    toast.error(`File too large. Maximum size is ${MAX_IMAGE_SIZE_MB}MB.`);
+                    e.target.value = "";
+                    return;
+                  }
+                  setProofPhoto(file);
+                }}
                 className="hidden"
               />
               <Button

@@ -86,10 +86,27 @@ export default function BusOperatorSettings() {
     }
   });
 
+  const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+  const MAX_IMAGE_SIZE_MB = 5;
+
   const handleLogoUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    
+
+    // Validate file type
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      toast.error("Invalid file type. Please upload a JPEG, PNG, or WebP image.");
+      e.target.value = "";
+      return;
+    }
+
+    // Validate file size
+    if (file.size > MAX_IMAGE_SIZE_MB * 1024 * 1024) {
+      toast.error(`File too large. Maximum size is ${MAX_IMAGE_SIZE_MB}MB.`);
+      e.target.value = "";
+      return;
+    }
+
     setUploading(true);
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
@@ -99,6 +116,7 @@ export default function BusOperatorSettings() {
       toast.error("Upload failed");
     } finally {
       setUploading(false);
+      e.target.value = "";
     }
   };
 
@@ -161,7 +179,7 @@ export default function BusOperatorSettings() {
                         {uploading ? "Uploading..." : "Upload Logo"}
                       </span>
                     </Button>
-                    <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+                    <input type="file" accept=".jpg,.jpeg,.png,.webp" className="hidden" onChange={handleLogoUpload} />
                   </label>
                 </div>
               </div>

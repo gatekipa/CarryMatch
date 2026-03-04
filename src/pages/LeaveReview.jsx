@@ -11,6 +11,9 @@ import { Star, ArrowLeft, Upload, X, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const MAX_IMAGE_SIZE_MB = 5;
+
 export default function LeaveReview() {
   const navigate = useNavigate();
   const urlParams = new URLSearchParams(window.location.search);
@@ -52,19 +55,35 @@ export default function LeaveReview() {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
+    // Validate all files before uploading
+    for (const file of files) {
+      if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+        toast.error(`"${file.name}" is not allowed. Only JPEG, PNG, or WebP images are accepted.`);
+        e.target.value = "";
+        return;
+      }
+      if (file.size > MAX_IMAGE_SIZE_MB * 1024 * 1024) {
+        toast.error(`"${file.name}" is too large. Maximum size is ${MAX_IMAGE_SIZE_MB}MB.`);
+        e.target.value = "";
+        return;
+      }
+    }
+
     setIsUploading(true);
     try {
-      const uploadPromises = files.map(file => 
+      const uploadPromises = files.map(file =>
         base44.integrations.Core.UploadFile({ file })
       );
       const results = await Promise.all(uploadPromises);
       const newUrls = results.map(r => r.file_url);
-      setPhotoUrls([...photoUrls, ...newUrls]);
+      setPhotoUrls(prev => [...prev, ...newUrls]);
     } catch (error) {
       console.error("Error uploading photos:", error);
       toast.error("Failed to upload photos");
+    } finally {
+      setIsUploading(false);
+      e.target.value = "";
     }
-    setIsUploading(false);
   };
 
   const removePhoto = (index) => {
@@ -332,7 +351,7 @@ export default function LeaveReview() {
                       <input
                         type="file"
                         id="review-photos"
-                        accept="image/*"
+                        accept=".jpg,.jpeg,.png,.webp"
                         multiple
                         onChange={handleFileUpload}
                         className="hidden"

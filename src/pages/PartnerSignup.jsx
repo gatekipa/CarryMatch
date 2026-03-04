@@ -12,6 +12,7 @@ import { ArrowLeft, Truck, Building, Mail, Phone, MapPin, Upload, FileText } fro
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { countries, getPhoneCodeByCountry } from "@/components/data/countries";
+import CityAutocomplete from "@/components/cities/CityAutocomplete";
 
 export default function PartnerSignup() {
   const navigate = useNavigate();
@@ -123,24 +124,7 @@ export default function PartnerSignup() {
 
       setIsSubmitting(true);
       try {
-        // Create VendorApplication for admin review
-        const application = await base44.entities.VendorApplication.create({
-          legal_name: formData.companyName,
-          display_name: formData.companyName,
-          vendor_type: formData.businessType.toUpperCase(),
-          description: formData.description || "",
-          contact_name: formData.contactName,
-          contact_email: formData.email.toLowerCase(),
-          contact_phone: `${formData.phoneCode}${formData.phone}`,
-          hq_country: formData.country,
-          hq_city: formData.city,
-          address: formData.address || "",
-          license_docs: formData.licenseDocs.length > 0 ? formData.licenseDocs : undefined,
-          business_registration_doc: formData.businessRegistrationDoc || undefined,
-          status: "pending"
-        });
-
-        // Also create Vendor + OWNER staff so they can start setup immediately
+        // Create Vendor first so we have the vendor_id
         const vendorData = {
           legal_name: formData.companyName,
           display_name: formData.companyName,
@@ -153,7 +137,6 @@ export default function PartnerSignup() {
           hq_city: formData.city,
           address: formData.address || "",
           status: "PENDING_REVIEW",
-          application_id: application.id
         };
         if (formData.businessRegistrationDoc) {
           vendorData.license_documents = [formData.businessRegistrationDoc, ...formData.licenseDocs];
@@ -162,22 +145,48 @@ export default function PartnerSignup() {
         }
         const vendor = await base44.entities.Vendor.create(vendorData);
 
-        // Link application to vendor
-        await base44.entities.VendorApplication.update(application.id, {
-          vendor_id: vendor.id
-        });
-
-        // Create the first staff member as OWNER
-        const currentUser = await base44.auth.me();
-        if (currentUser) {
-          await base44.entities.VendorStaff.create({
-            vendor_id: vendor.id,
-            email: currentUser.email,
-            full_name: formData.contactName,
-            role: "OWNER",
-            status: "ACTIVE",
-            invitation_sent_at: new Date().toISOString()
+        let createdApplication;
+        try {
+          // Create VendorApplication for admin review (includes vendor_id at creation time
+          // since non-admin users cannot update VendorApplication after creation)
+          createdApplication = await base44.entities.VendorApplication.create({
+            legal_name: formData.companyName,
+            display_name: formData.companyName,
+            vendor_type: formData.businessType.toUpperCase(),
+            description: formData.description || "",
+            contact_name: formData.contactName,
+            contact_email: formData.email.toLowerCase(),
+            contact_phone: `${formData.phoneCode}${formData.phone}`,
+            hq_country: formData.country,
+            hq_city: formData.city,
+            address: formData.address || "",
+            license_docs: formData.licenseDocs.length > 0 ? formData.licenseDocs : undefined,
+            business_registration_doc: formData.businessRegistrationDoc || undefined,
+            tax_id_doc: formData.taxIdDoc || undefined,
+            insurance_doc: formData.insuranceDoc || undefined,
+            status: "PENDING",
+            vendor_id: vendor.id
           });
+
+          // Create the first staff member as OWNER
+          const currentUser = await base44.auth.me();
+          if (currentUser) {
+            await base44.entities.VendorStaff.create({
+              vendor_id: vendor.id,
+              email: currentUser.email,
+              full_name: formData.contactName,
+              role: "OWNER",
+              status: "ACTIVE",
+              invitation_sent_at: new Date().toISOString()
+            });
+          }
+        } catch (innerError) {
+          // Rollback: delete already-created resources
+          try { await base44.entities.Vendor.delete(vendor.id); } catch (_) {}
+          if (createdApplication) {
+            try { await base44.entities.VendorApplication.delete(createdApplication.id); } catch (_) {}
+          }
+          throw innerError;
         }
 
         toast.success("Application submitted! We'll review it within 24-48 hours.");
@@ -348,13 +357,13 @@ export default function PartnerSignup() {
                   </div>
                   <div>
                     <Label htmlFor="city" className="text-gray-300 mb-2">City *</Label>
-                    <Input 
+                    <CityAutocomplete
                       id="city"
-                      required 
-                      value={formData.city} 
-                      onChange={(e) => setFormData(prev => ({...prev, city: e.target.value}))} 
-                      placeholder="New York" 
-                      className="bg-white/5 border-white/10 text-white" 
+                      value={formData.city}
+                      onChange={(city) => setFormData(prev => ({...prev, city}))}
+                      placeholder="e.g. Douala, New York"
+                      required
+                      filterCountry={formData.country || null}
                     />
                   </div>
                   <div>

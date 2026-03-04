@@ -14,6 +14,7 @@ import { Bus, Search, Calendar, MapPin, ArrowRight, TrendingUp, Star, Building2,
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import QRTracker from "../components/bus/QRTracker";
+import CityAutocomplete from "@/components/cities/CityAutocomplete";
 
 const POPULAR_ROUTES = [
   { from: "Douala", to: "Yaoundé" },
@@ -22,11 +23,6 @@ const POPULAR_ROUTES = [
   { from: "Yaoundé", to: "Bamenda" },
   { from: "Douala", to: "Bamenda" },
   { from: "Yaoundé", to: "Garoua" }
-];
-
-const CAMEROON_CITIES = [
-  "Douala", "Yaoundé", "Bafoussam", "Bamenda", "Buea", "Garoua", 
-  "Maroua", "Ngaoundéré", "Bertoua", "Ebolowa", "Kribi", "Limbe"
 ];
 
 export default function BusSearch() {
@@ -371,37 +367,30 @@ export default function BusSearch() {
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
                       <Label className="text-gray-300 mb-2 block">From</Label>
-                      <Input
+                      <CityAutocomplete
                         value={fromCity}
-                        onChange={(e) => setFromCity(e.target.value)}
-                        list="city-list-from"
-                        placeholder="Type or select departure city"
-                        className="bg-white/5 border-white/10 text-white placeholder:text-gray-500"
+                        onChange={setFromCity}
+                        placeholder="Type departure city"
+                        filterCountry="Cameroon"
                       />
-                      <datalist id="city-list-from">
-                        {CAMEROON_CITIES.map(c => <option key={c} value={c} />)}
-                      </datalist>
                     </div>
                     <div className="relative">
                       <Label className="text-gray-300 mb-2 block">To</Label>
-                      <div className="relative">
-                        <Input
+                      <div className="flex gap-2 items-start">
+                        <CityAutocomplete
                           value={toCity}
-                          onChange={(e) => setToCity(e.target.value)}
-                          list="city-list-to"
-                          placeholder="Type or select arrival city"
-                          className="bg-white/5 border-white/10 text-white placeholder:text-gray-500"
+                          onChange={setToCity}
+                          placeholder="Type arrival city"
+                          filterCountry="Cameroon"
+                          className="flex-1"
                         />
-                        <datalist id="city-list-to">
-                          {CAMEROON_CITIES.map(c => <option key={c} value={c} />)}
-                        </datalist>
                         <Button
                           type="button"
                           variant="ghost"
                           size="icon"
                           onClick={handleSwapCities}
                           disabled={!fromCity || !toCity}
-                          className="absolute right-12 top-1/2 -translate-y-1/2 h-8 w-8 text-gray-400 hover:text-white"
+                          className="mt-0.5 h-10 w-10 text-gray-400 hover:text-white flex-shrink-0"
                           title="Swap cities"
                         >
                           <ArrowLeftRight className="w-4 h-4" />

@@ -12,6 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Route, Plus, Edit, MapPin, Trash2, Copy, FileText, Users } from "lucide-react";
 import SeatAllocationManager from "../components/bus/SeatAllocationManager";
+import CityAutocomplete from "@/components/cities/CityAutocomplete";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 
@@ -500,20 +501,22 @@ export default function ManageBusRoutes() {
             <div className="space-y-4">
               <div>
                 <Label className="text-gray-300">Origin City *</Label>
-                <Input
+                <CityAutocomplete
                   value={formData.origin_city}
-                  onChange={(e) => setFormData({...formData, origin_city: e.target.value})}
+                  onChange={(city) => setFormData({...formData, origin_city: city})}
                   placeholder="e.g., Douala"
-                  className="bg-white/5 border-white/10 text-white mt-2"
+                  filterCountry="Cameroon"
+                  className="mt-2"
                 />
               </div>
               <div>
                 <Label className="text-gray-300">Destination City *</Label>
-                <Input
+                <CityAutocomplete
                   value={formData.destination_city}
-                  onChange={(e) => setFormData({...formData, destination_city: e.target.value})}
+                  onChange={(city) => setFormData({...formData, destination_city: city})}
                   placeholder="e.g., Yaoundé"
-                  className="bg-white/5 border-white/10 text-white mt-2"
+                  filterCountry="Cameroon"
+                  className="mt-2"
                 />
               </div>
               <div>
@@ -595,11 +598,12 @@ export default function ManageBusRoutes() {
                     </div>
                     <div>
                       <Label className="text-gray-300">City</Label>
-                      <Input
+                      <CityAutocomplete
                         value={stopForm.city}
-                        onChange={(e) => setStopForm({...stopForm, city: e.target.value})}
+                        onChange={(city) => setStopForm({...stopForm, city})}
                         placeholder="e.g., Bafoussam"
-                        className="bg-white/5 border-white/10 text-white mt-1"
+                        filterCountry="Cameroon"
+                        className="mt-1"
                       />
                     </div>
                   </div>
@@ -646,20 +650,22 @@ export default function ManageBusRoutes() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-gray-300">Origin City *</Label>
-                  <Input
+                  <CityAutocomplete
                     value={templateForm.origin_city}
-                    onChange={(e) => setTemplateForm({...templateForm, origin_city: e.target.value})}
+                    onChange={(city) => setTemplateForm({...templateForm, origin_city: city})}
                     placeholder="e.g., Douala"
-                    className="bg-white/5 border-white/10 text-white mt-2"
+                    filterCountry="Cameroon"
+                    className="mt-2"
                   />
                 </div>
                 <div>
                   <Label className="text-gray-300">Destination City *</Label>
-                  <Input
+                  <CityAutocomplete
                     value={templateForm.destination_city}
-                    onChange={(e) => setTemplateForm({...templateForm, destination_city: e.target.value})}
+                    onChange={(city) => setTemplateForm({...templateForm, destination_city: city})}
                     placeholder="e.g., Yaoundé"
-                    className="bg-white/5 border-white/10 text-white mt-2"
+                    filterCountry="Cameroon"
+                    className="mt-2"
                   />
                 </div>
               </div>

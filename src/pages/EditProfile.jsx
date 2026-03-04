@@ -12,6 +12,7 @@ import { User, ArrowLeft, Upload, Loader2, AlertCircle, Trash2, X, Plus, Phone, 
 import { motion } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import CityAutocomplete from "@/components/cities/CityAutocomplete";
 
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_IMAGE_SIZE_MB = 5;
@@ -433,7 +434,12 @@ export default function EditProfile() {
                   </div>
                   <div>
                     <Label className="text-xs text-gray-500 mb-1 block">City</Label>
-                    <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="e.g. Douala, Washington D.C." className={ic} />
+                    <CityAutocomplete
+                      value={city}
+                      onChange={setCity}
+                      placeholder="e.g. Douala, Washington D.C."
+                      filterCountry={country || null}
+                    />
                   </div>
                 </div>
               </section>
