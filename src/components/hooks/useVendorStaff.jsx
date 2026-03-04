@@ -6,123 +6,125 @@ const LS_KEY = "carrymatch_vendor_staff";
 /**
  * Robust hook to find the current user's VendorStaff record.
  *
- * IMPORTANT: Base44's .filter() has a significant indexing delay — records
- * created with .create() are NOT immediately returned by .filter().
- * This was confirmed by console logs showing .filter() returning empty
- * results even 6+ seconds after .create() returned a valid ID.
+ * Base44's .filter() has a confirmed indexing delay — .create() succeeds but
+ * .filter() returns empty for an extended period. We bypass .filter() entirely
+ * and use .list() with client-side matching instead.
  *
- * Lookup order (first match wins):
- *  0. localStorage cache  (instant — set by PartnerSignup after .create())
- *  1. VendorStaff.filter({ email, status: "ACTIVE" })
- *  2. VendorStaff.filter({ email })                  (any status)
- *  3. VendorStaff.list()  → client-side email match   (bypasses filter index)
- *  4. Vendor.filter({ primary_contact_email })  → auto-create VendorStaff
+ * Lookup order:
+ *  1. localStorage (instant — populated by PartnerSignup or backfilled here)
+ *  2. VendorStaff.list() → client-side email match (bypasses filter index)
+ *  3. Vendor.list() → find matching vendor → auto-create VendorStaff
  */
 export function useVendorStaff(userEmail) {
   return useQuery({
     queryKey: ['vendor-staff-me', userEmail],
     queryFn: async () => {
       if (!userEmail) return null;
+      const emailLower = userEmail.toLowerCase();
 
-      // ---- Step 0: localStorage cache (instant, no network) ----
+      // ---- Step 1: localStorage (instant, no network) ----
       try {
         const cached = localStorage.getItem(LS_KEY);
         if (cached) {
           const parsed = JSON.parse(cached);
-          if (parsed && parsed.email === userEmail && parsed.vendor_id) {
-            console.log("[useVendorStaff] ✅ Found in localStorage, vendor_id:", parsed.vendor_id);
+          if (parsed && parsed.vendor_id &&
+              (parsed.email === userEmail || parsed.email?.toLowerCase() === emailLower)) {
+            console.log("[useVendorStaff] ✅ Step 1: Found in localStorage, vendor_id:", parsed.vendor_id);
             return parsed;
           }
         }
       } catch (e) {
-        console.warn("[useVendorStaff] localStorage read failed:", e);
+        console.warn("[useVendorStaff] localStorage read error:", e);
       }
 
-      // ---- Step 1: exact email + ACTIVE status ----
-      try {
-        const staff = await base44.entities.VendorStaff.filter({
-          email: userEmail,
-          status: "ACTIVE"
-        });
-        if (staff[0]) {
-          console.log("[useVendorStaff] ✅ Found via filter (email+ACTIVE)");
-          // Backfill localStorage for future visits
-          try { localStorage.setItem(LS_KEY, JSON.stringify(staff[0])); } catch {}
-          return staff[0];
-        }
-      } catch (e) {
-        console.warn("[useVendorStaff] Step 1 filter failed:", e);
-      }
-
-      // ---- Step 2: email only (any status) ----
-      try {
-        const staffAny = await base44.entities.VendorStaff.filter({
-          email: userEmail
-        });
-        if (staffAny[0]) {
-          console.log("[useVendorStaff] ✅ Found via filter (email-only)");
-          try { localStorage.setItem(LS_KEY, JSON.stringify(staffAny[0])); } catch {}
-          return staffAny[0];
-        }
-      } catch (e) {
-        console.warn("[useVendorStaff] Step 2 filter failed:", e);
-      }
-
-      // ---- Step 3: list ALL VendorStaff + client-side match ----
-      // .list() may bypass the filter indexing delay
+      // ---- Step 2: VendorStaff.list() + client-side email match ----
+      console.log("[useVendorStaff] Step 2: Calling VendorStaff.list() for", userEmail);
       try {
         const allStaff = await base44.entities.VendorStaff.list();
-        const match = allStaff.find(s =>
-          s.email === userEmail || s.email?.toLowerCase() === userEmail.toLowerCase()
-        );
-        if (match) {
-          console.log("[useVendorStaff] ✅ Found via .list() client-side match");
-          try { localStorage.setItem(LS_KEY, JSON.stringify(match)); } catch {}
-          return match;
+        console.log("[useVendorStaff] Step 2: .list() returned", allStaff?.length, "records");
+
+        if (allStaff && allStaff.length > 0) {
+          // Try exact match first, then case-insensitive
+          const match =
+            allStaff.find(s => s.email === userEmail && s.status === "ACTIVE") ||
+            allStaff.find(s => s.email?.toLowerCase() === emailLower && s.status === "ACTIVE") ||
+            allStaff.find(s => s.email === userEmail) ||
+            allStaff.find(s => s.email?.toLowerCase() === emailLower);
+
+          if (match) {
+            console.log("[useVendorStaff] ✅ Step 2: Found via .list(), id:", match.id, "vendor_id:", match.vendor_id);
+            // Backfill localStorage for instant access on future loads
+            try { localStorage.setItem(LS_KEY, JSON.stringify(match)); } catch {}
+            return match;
+          }
+
+          // Log all emails for debugging if no match
+          console.log("[useVendorStaff] Step 2: No email match. Emails in list:",
+            allStaff.map(s => s.email).join(", "));
         }
       } catch (e) {
-        console.warn("[useVendorStaff] Step 3 list() failed:", e);
+        console.warn("[useVendorStaff] Step 2: .list() failed:", e);
       }
 
-      // ---- Step 4: Vendor fallback → auto-create VendorStaff ----
+      // ---- Step 3: Vendor.list() → find vendor by email → auto-create VendorStaff ----
+      console.log("[useVendorStaff] Step 3: Trying Vendor.list() fallback");
       try {
-        const emailLower = userEmail.toLowerCase();
-        const vendors = await base44.entities.Vendor.filter({
-          primary_contact_email: emailLower
-        });
+        const allVendors = await base44.entities.Vendor.list();
+        console.log("[useVendorStaff] Step 3: Vendor.list() returned", allVendors?.length, "records");
 
-        if (vendors[0]) {
-          console.log("[useVendorStaff] Found orphan Vendor", vendors[0].id,
-            "— auto-creating VendorStaff for", userEmail);
+        if (allVendors && allVendors.length > 0) {
+          const vendor = allVendors.find(v =>
+            v.primary_contact_email === userEmail ||
+            v.primary_contact_email === emailLower ||
+            v.primary_contact_email?.toLowerCase() === emailLower
+          );
 
-          const created = await base44.entities.VendorStaff.create({
-            vendor_id: vendors[0].id,
-            email: userEmail,
-            full_name: vendors[0].primary_contact_name || "Owner",
-            role: "OWNER",
-            status: "ACTIVE"
-          });
-          console.log("[useVendorStaff] ✅ Auto-created VendorStaff:", created?.id);
-          // Cache in localStorage
-          const record = created || {
-            vendor_id: vendors[0].id,
-            email: userEmail,
-            full_name: vendors[0].primary_contact_name || "Owner",
-            role: "OWNER",
-            status: "ACTIVE"
-          };
-          try { localStorage.setItem(LS_KEY, JSON.stringify(record)); } catch {}
-          return record;
+          if (vendor) {
+            console.log("[useVendorStaff] Step 3: Found orphan Vendor", vendor.id, "— auto-creating VendorStaff");
+
+            try {
+              const created = await base44.entities.VendorStaff.create({
+                vendor_id: vendor.id,
+                email: userEmail,
+                full_name: vendor.primary_contact_name || "Owner",
+                role: "OWNER",
+                status: "ACTIVE"
+              });
+              const record = created || {
+                vendor_id: vendor.id,
+                email: userEmail,
+                full_name: vendor.primary_contact_name || "Owner",
+                role: "OWNER",
+                status: "ACTIVE"
+              };
+              console.log("[useVendorStaff] ✅ Step 3: Auto-created VendorStaff:", record.id || "(no id)");
+              try { localStorage.setItem(LS_KEY, JSON.stringify(record)); } catch {}
+              return record;
+            } catch (createErr) {
+              console.warn("[useVendorStaff] Step 3: Auto-create failed:", createErr);
+              // Even if create fails, return a synthetic record so dashboard can load
+              const synthetic = {
+                vendor_id: vendor.id,
+                email: userEmail,
+                full_name: vendor.primary_contact_name || "Owner",
+                role: "OWNER",
+                status: "ACTIVE",
+                _synthetic: true
+              };
+              try { localStorage.setItem(LS_KEY, JSON.stringify(synthetic)); } catch {}
+              return synthetic;
+            }
+          }
         }
       } catch (e) {
-        console.warn("[useVendorStaff] Step 4 vendor fallback failed:", e);
+        console.warn("[useVendorStaff] Step 3: Vendor.list() failed:", e);
       }
 
       console.log("[useVendorStaff] ❌ No VendorStaff found for", userEmail);
       return null;
     },
     enabled: !!userEmail,
-    staleTime: 15 * 1000,
+    staleTime: 30 * 1000,
     refetchOnMount: 'always',
     retry: 2,
     retryDelay: 2000
