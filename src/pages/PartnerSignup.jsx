@@ -51,33 +51,38 @@ export default function PartnerSignup() {
       .catch(() => { setUser(null); setAuthChecked(true); });
   }, []);
 
-  // Prevent re-signup: if user already has a VendorStaff or Vendor, redirect to dashboard
+  // Prevent re-signup: if user already has a VendorStaff (localStorage or API), redirect
   useEffect(() => {
     if (!user?.email) { setExistingCheckDone(true); return; }
 
     (async () => {
+      // Check localStorage FIRST (instant, doesn't depend on Base44 indexing)
       try {
-        // Check VendorStaff first
+        const cached = localStorage.getItem("carrymatch_vendor_staff");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && parsed.email === user.email && parsed.vendor_id) {
+            console.log("[PartnerSignup] Found existing VendorStaff in localStorage, redirecting");
+            toast.info("You already have a partner account!");
+            window.location.href = createPageUrl("VendorDashboard");
+            return;
+          }
+        }
+      } catch {}
+
+      // Also try Base44 API (may work for older records that are fully indexed)
+      try {
         const staff = await base44.entities.VendorStaff.filter({ email: user.email });
         if (staff.length > 0) {
-          console.log("[PartnerSignup] User already has VendorStaff, redirecting");
+          console.log("[PartnerSignup] User already has VendorStaff via API, redirecting");
           toast.info("You already have a partner account!");
           window.location.href = createPageUrl("VendorDashboard");
           return;
         }
-        // Check Vendor by primary_contact_email
-        const vendors = await base44.entities.Vendor.filter({
-          primary_contact_email: user.email.toLowerCase()
-        });
-        if (vendors.length > 0) {
-          console.log("[PartnerSignup] User already has Vendor, redirecting");
-          toast.info("You already have a partner application! Redirecting...");
-          window.location.href = createPageUrl("VendorDashboard");
-          return;
-        }
       } catch (e) {
-        console.warn("[PartnerSignup] Existing record check failed:", e);
+        console.warn("[PartnerSignup] VendorStaff API check failed:", e);
       }
+
       setExistingCheckDone(true);
     })();
   }, [user]);
@@ -177,6 +182,19 @@ export default function PartnerSignup() {
       setIsSubmitting(true);
       try {
         // ---- Guard: prevent duplicate submission ----
+        // Check localStorage first (instant)
+        try {
+          const cached = localStorage.getItem("carrymatch_vendor_staff");
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (parsed?.email === user.email && parsed?.vendor_id) {
+              toast.info("You already have a partner account! Redirecting...");
+              window.location.href = createPageUrl("VendorDashboard");
+              return;
+            }
+          }
+        } catch {}
+        // Also check Base44 API (for older, indexed records)
         const existingStaff = await base44.entities.VendorStaff.filter({ email: user.email });
         if (existingStaff.length > 0) {
           toast.info("You already have a partner account! Redirecting...");
@@ -244,6 +262,25 @@ export default function PartnerSignup() {
             invitation_sent_at: new Date().toISOString()
           });
           console.log("[PartnerSignup] VendorStaff created:", staffRecord?.id, "email:", user.email);
+
+          // ---- CRITICAL: Store in localStorage ----
+          // Base44's .filter() has an indexing delay and can't find records immediately
+          // after .create(). We bypass this by caching the record in localStorage so
+          // useVendorStaff on VendorDashboard can read it instantly.
+          const staffData = {
+            id: staffRecord?.id,
+            vendor_id: vendor.id,
+            email: user.email,
+            full_name: formData.contactName,
+            role: "OWNER",
+            status: "ACTIVE"
+          };
+          try {
+            localStorage.setItem("carrymatch_vendor_staff", JSON.stringify(staffData));
+            console.log("[PartnerSignup] ✅ VendorStaff cached in localStorage");
+          } catch (lsErr) {
+            console.warn("[PartnerSignup] localStorage write failed:", lsErr);
+          }
         } catch (innerError) {
           console.error("[PartnerSignup] Inner creation failed:", innerError);
           // Rollback: delete already-created resources
@@ -254,31 +291,12 @@ export default function PartnerSignup() {
           throw innerError;
         }
 
-        toast.success("Application submitted! Verifying your account...");
+        toast.success("Application submitted! Redirecting to your dashboard...");
 
-        // Poll to verify VendorStaff is queryable before redirecting
-        // (guards against Base44 eventual consistency delays)
-        let verified = false;
-        for (let attempt = 0; attempt < 4; attempt++) {
-          await new Promise(r => setTimeout(r, 1500));
-          try {
-            const check = await base44.entities.VendorStaff.filter({
-              email: user.email, status: "ACTIVE"
-            });
-            if (check.length > 0) {
-              verified = true;
-              console.log("[PartnerSignup] VendorStaff verified on attempt", attempt + 1);
-              break;
-            }
-          } catch (_) { /* retry */ }
-        }
-
-        if (!verified) {
-          console.warn("[PartnerSignup] VendorStaff not verified after polling — Vendor fallback will handle it");
-        }
-
-        // Full page reload so React Query cache is cleared
-        window.location.href = createPageUrl("VendorDashboard");
+        // Small delay for toast visibility, then full page reload
+        setTimeout(() => {
+          window.location.href = createPageUrl("VendorDashboard");
+        }, 1500);
       } catch (error) {
         console.error("[PartnerSignup] Application error:", error);
         const errorMsg = error?.message || "Failed to submit application. Please check all required fields.";
