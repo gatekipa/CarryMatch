@@ -39,20 +39,65 @@ export default function AdminBusSettings() {
 
   const suspendOperatorMutation = useMutation({
     mutationFn: async (operatorId) => {
-      await base44.entities.BusOperator.update(operatorId, { status: "suspended" });
-      
-      // Hide all their trips
-      const trips = await base44.entities.Trip.filter({ operator_id: operatorId });
-      for (const trip of trips) {
-        await base44.entities.Trip.update(trip.id, { trip_status: "canceled" });
+      const CANCELLABLE_STATUSES = ["scheduled", "pending", "active"];
+      const allTrips = await base44.entities.Trip.filter({ operator_id: operatorId });
+
+      // Only cancel trips that are still in a cancellable state
+      const cancellableTrips = allTrips.filter((t) =>
+        CANCELLABLE_STATUSES.includes(t.trip_status)
+      );
+
+      // Attempt to cancel cancellable trips in parallel
+      const results = await Promise.allSettled(
+        cancellableTrips.map((trip) =>
+          base44.entities.Trip.update(trip.id, { trip_status: "canceled" })
+        )
+      );
+
+      const failed = results.filter((r) => r.status === "rejected");
+
+      if (failed.length > 0) {
+        // Roll back the ones that succeeded — restore original status
+        const rollbackResults = await Promise.allSettled(
+          cancellableTrips
+            .filter((_, i) => results[i].status === "fulfilled")
+            .map((trip) =>
+              base44.entities.Trip.update(trip.id, { trip_status: trip.trip_status })
+            )
+        );
+        const rollbackFailed = rollbackResults.filter((r) => r.status === "rejected");
+        const parts = [`${failed.length} of ${cancellableTrips.length} trip cancellations failed`];
+        if (rollbackFailed.length > 0) {
+          parts.push(`${rollbackFailed.length} rollback(s) also failed — state may be inconsistent`);
+        }
+        throw new Error(parts.join("; "));
+      }
+
+      // All cancellable trips canceled — now suspend the operator
+      try {
+        await base44.entities.BusOperator.update(operatorId, { status: "suspended" });
+      } catch (suspendError) {
+        // Operator update failed — rollback canceled trips to original statuses
+        const rollbackResults = await Promise.allSettled(
+          cancellableTrips.map((trip) =>
+            base44.entities.Trip.update(trip.id, { trip_status: trip.trip_status })
+          )
+        );
+        const rollbackFailed = rollbackResults.filter((r) => r.status === "rejected");
+        const parts = ["Failed to suspend operator after canceling trips"];
+        if (rollbackFailed.length > 0) {
+          parts.push(`${rollbackFailed.length} of ${cancellableTrips.length} trip rollback(s) also failed — state may be inconsistent`);
+        }
+        throw new Error(parts.join("; "));
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['all-bus-operators'] });
       toast.success("Operator suspended and trips hidden");
     },
-    onError: () => {
-      toast.error("Failed to suspend operator");
+    onError: (error) => {
+      const message = error?.response?.data?.message || error?.message || String(error);
+      toast.error(`Failed to suspend operator: ${message}`);
     }
   });
 
@@ -65,7 +110,7 @@ export default function AdminBusSettings() {
   });
 
   const verifyOperatorMutation = useMutation({
-    mutationFn: (operatorId) => base44.entities.BusOperator.update(operatorId, { 
+    mutationFn: (operatorId) => base44.entities.BusOperator.update(operatorId, {
       verification_status: "verified",
       verification_date: new Date().toISOString()
     }),
@@ -73,6 +118,41 @@ export default function AdminBusSettings() {
       queryClient.invalidateQueries({ queryKey: ['all-bus-operators'] });
       toast.success("Operator verified");
     }
+  });
+
+  const saveFeeSettingsMutation = useMutation({
+    mutationFn: async () => {
+      if (!["flat", "percentage"].includes(platformFeeType)) {
+        throw new Error("Fee type must be 'flat' or 'percentage'");
+      }
+      const feeValue = parseFloat(platformFeeValue);
+      if (!Number.isFinite(feeValue) || feeValue < 0) {
+        throw new Error("Fee value must be a non-negative number");
+      }
+      if (platformFeeType === "percentage" && feeValue > 100) {
+        throw new Error("Percentage fee cannot exceed 100%");
+      }
+      return base44.entities.SystemConfig.update("bus_platform_fee", {
+        fee_type: platformFeeType,
+        fee_value: feeValue,
+      });
+    },
+    onSuccess: () => toast.success("Fee settings saved"),
+    onError: (error) => toast.error("Failed to save fee settings: " + error.message),
+  });
+
+  const updateHoldPolicyMutation = useMutation({
+    mutationFn: async () => {
+      const timeout = parseInt(holdTimeoutMinutes, 10);
+      if (!Number.isFinite(timeout) || timeout < 1 || timeout > 1440) {
+        throw new Error("Hold timeout must be between 1 and 1440 minutes");
+      }
+      return base44.entities.SystemConfig.update("bus_hold_policy", {
+        hold_timeout_minutes: timeout,
+      });
+    },
+    onSuccess: () => toast.success("Hold policy updated"),
+    onError: (error) => toast.error("Failed to update hold policy: " + error.message),
   });
 
   if (!user || user.role !== 'admin') {
@@ -138,9 +218,13 @@ export default function AdminBusSettings() {
                 </p>
               </div>
 
-              <Button className="w-full bg-green-500">
+              <Button
+                className="w-full bg-green-500"
+                onClick={() => saveFeeSettingsMutation.mutate()}
+                disabled={saveFeeSettingsMutation.isPending}
+              >
                 <Settings className="w-4 h-4 mr-2" />
-                Save Fee Settings
+                {saveFeeSettingsMutation.isPending ? "Saving..." : "Save Fee Settings"}
               </Button>
             </div>
           </Card>
@@ -172,9 +256,13 @@ export default function AdminBusSettings() {
                 </p>
               </div>
 
-              <Button className="w-full bg-purple-500">
+              <Button
+                className="w-full bg-purple-500"
+                onClick={() => updateHoldPolicyMutation.mutate()}
+                disabled={updateHoldPolicyMutation.isPending}
+              >
                 <Settings className="w-4 h-4 mr-2" />
-                Update Hold Policy
+                {updateHoldPolicyMutation.isPending ? "Updating..." : "Update Hold Policy"}
               </Button>
             </div>
           </Card>
