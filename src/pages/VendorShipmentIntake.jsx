@@ -418,7 +418,8 @@ export default function VendorShipmentIntake() {
                     value={formData.sender_phone}
                     onChange={(e) => {
                       const raw = e.target.value.replace(/[^0-9]/g, "");
-                      const formatted = formatPhone(raw, "+237");
+                      const vendorCode = vendor?.base_currency === "XAF" ? "+237" : vendor?.base_currency === "NGN" ? "+234" : "+1";
+                      const formatted = formatPhone(raw, vendorCode);
                       setFormData({ ...formData, sender_phone: formatted });
                       const matches = lookupByPhone(formatted);
                       setSenderSuggestions(matches);
@@ -501,7 +502,8 @@ export default function VendorShipmentIntake() {
                     value={formData.recipient_phone}
                     onChange={(e) => {
                       const raw = e.target.value.replace(/[^0-9]/g, "");
-                      const formatted = formatPhone(raw, "+237");
+                      const vendorCode = vendor?.base_currency === "XAF" ? "+237" : vendor?.base_currency === "NGN" ? "+234" : "+1";
+                      const formatted = formatPhone(raw, vendorCode);
                       setFormData({ ...formData, recipient_phone: formatted });
                       const matches = lookupByPhone(formatted);
                       setRecipientSuggestions(matches);

@@ -252,7 +252,7 @@ export default function PartnerSignup() {
                 <Button
                   type="button"
                   size="sm"
-                  onClick={() => base44.auth.redirectToLogin()}
+                  onClick={() => base44.auth.redirectToLogin(window.location.href)}
                   className="bg-amber-500 hover:bg-amber-600 text-white text-xs"
                 >
                   Sign In

@@ -27,6 +27,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useQueryClient } from '@tanstack/react-query';
+import { formatPhone, stripPhone } from "@/utils/formatPhone";
 
 export default function VerifyIdentity() {
   const navigate = useNavigate();
@@ -38,6 +39,7 @@ export default function VerifyIdentity() {
   const [validationErrors, setValidationErrors] = useState([]);
 
   const [verificationMethod, setVerificationMethod] = useState("id");
+  const [phoneCode, setPhoneCode] = useState("+1");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
   const [codeSent, setCodeSent] = useState(false);
@@ -190,7 +192,7 @@ export default function VerifyIdentity() {
         verification_status: "approved",
         is_verified: true,
         verification_approved_date: new Date().toISOString(),
-        phone: phoneNumber
+        phone: `${phoneCode}${stripPhone(phoneNumber)}`
       });
 
       toast.success("Phone verified successfully!");
@@ -545,13 +547,30 @@ export default function VerifyIdentity() {
                         <>
                           <div>
                             <Label className="text-white mb-3 block">Phone Number *</Label>
-                            <Input
-                              type="tel"
-                              value={phoneNumber}
-                              onChange={(e) => setPhoneNumber(e.target.value)}
-                              placeholder="+1 (555) 123-4567"
-                              className="bg-white/5 border-white/10 text-white placeholder:text-gray-500"
-                            />
+                            <div className="flex gap-2">
+                              <Select value={phoneCode} onValueChange={(v) => { setPhoneCode(v); setPhoneNumber(""); }}>
+                                <SelectTrigger className="w-[100px] bg-white/5 border-white/10 text-white"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="+1">+1</SelectItem>
+                                  <SelectItem value="+237">+237</SelectItem>
+                                  <SelectItem value="+234">+234</SelectItem>
+                                  <SelectItem value="+233">+233</SelectItem>
+                                  <SelectItem value="+254">+254</SelectItem>
+                                  <SelectItem value="+44">+44</SelectItem>
+                                  <SelectItem value="+33">+33</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <Input
+                                type="tel"
+                                value={phoneNumber}
+                                onChange={(e) => {
+                                  const raw = e.target.value.replace(/[^0-9]/g, "");
+                                  setPhoneNumber(formatPhone(raw, phoneCode));
+                                }}
+                                placeholder="Enter your number"
+                                className="flex-1 bg-white/5 border-white/10 text-white placeholder:text-gray-500"
+                              />
+                            </div>
                             <p className="text-xs text-gray-400 mt-2">We'll send a 6-digit verification code</p>
                           </div>
 
@@ -579,7 +598,7 @@ export default function VerifyIdentity() {
                             <div className="flex items-start gap-3">
                               <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
                               <p className="text-sm text-gray-300">
-                                Code sent to <span className="font-semibold text-white">{phoneNumber}</span>
+                                Code sent to <span className="font-semibold text-white">{phoneCode} {phoneNumber}</span>
                               </p>
                             </div>
                           </div>

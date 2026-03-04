@@ -13,6 +13,7 @@ import { motion } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import CityAutocomplete from "@/components/cities/CityAutocomplete";
+import { formatPhone, stripPhone, PHONE_FORMATS } from "@/utils/formatPhone";
 
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_IMAGE_SIZE_MB = 5;
@@ -93,23 +94,7 @@ function parsePhone(phone) {
   return { countryCode: "+1", number: phone.replace(/^\+/, "") };
 }
 
-function formatPhoneWithDashes(raw, countryCode) {
-  const digits = raw.replace(/\D/g, "");
-  const cc = COUNTRY_CODES.find(c => c.code === countryCode);
-  if (!cc || !cc.format || countryCode === "other") return digits;
-  
-  const fmt = cc.format;
-  let result = "";
-  let di = 0;
-  for (let i = 0; i < fmt.length && di < digits.length; i++) {
-    if (fmt[i] === "#") {
-      result += digits[di++];
-    } else {
-      result += fmt[i];
-    }
-  }
-  return result;
-}
+/** Use shared formatPhone from @/utils/formatPhone instead of local copy */
 
 function parseLanguages(raw) {
   if (!raw) return [];
@@ -394,20 +379,20 @@ export default function EditProfile() {
                       className={`w-[80px] ${ic}`} 
                     />
                   )}
-                  <Input 
-                    type="tel" 
-                    value={phoneNumber} 
+                  <Input
+                    type="tel"
+                    value={phoneNumber}
                     onChange={(e) => {
                       const raw = e.target.value.replace(/[^0-9]/g, "");
-                      setPhoneNumber(formatPhoneWithDashes(raw, phoneCode));
-                    }} 
-                    placeholder={(() => { const cc = COUNTRY_CODES.find(c => c.code === phoneCode); return cc?.format?.replace(/#/g, "0") || "Enter number"; })()}
-                    className={`flex-1 ${ic}`} 
+                      setPhoneNumber(formatPhone(raw, phoneCode));
+                    }}
+                    placeholder={(() => { const fmt = PHONE_FORMATS[phoneCode]; return fmt ? fmt.replace(/#/g, "0") : "Enter number"; })()}
+                    className={`flex-1 ${ic}`}
                     required
                   />
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
-                  {phoneCode === "other" ? "Enter your country code and phone number" : `Format: ${phoneCode} ${COUNTRY_CODES.find(c => c.code === phoneCode)?.format?.replace(/#/g, "0") || ""}`}
+                  {phoneCode === "other" ? "Enter your country code and phone number" : `Format: ${phoneCode} ${PHONE_FORMATS[phoneCode]?.replace(/#/g, "0") || ""}`}
                 </p>
               </section>
 

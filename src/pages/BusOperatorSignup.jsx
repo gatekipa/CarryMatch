@@ -11,6 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Bus, Building, MapPin, Phone, Mail, Upload, CheckCircle, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { formatPhone, stripPhone } from "@/utils/formatPhone";
+import AddressAutocomplete from "@/components/address/AddressAutocomplete";
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_IMAGE_SIZE_MB = 5;
@@ -109,6 +111,7 @@ export default function BusOperatorSignup() {
 
       const operator = await base44.entities.BusOperator.create({
         ...operatorData,
+        phone: stripPhone(operatorData.phone),
         public_slug: slug,
         status: "pending",
         created_by: user.email
@@ -116,7 +119,8 @@ export default function BusOperatorSignup() {
 
       const branch = await base44.entities.OperatorBranch.create({
         operator_id: operator.id,
-        ...branchData
+        ...branchData,
+        contact_phone: stripPhone(branchData.contact_phone)
       });
 
       // Create owner staff record so user can access management pages
@@ -179,7 +183,7 @@ export default function BusOperatorSignup() {
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <Button
-                  onClick={() => base44.auth.redirectToLogin()}
+                  onClick={() => base44.auth.redirectToLogin(window.location.href)}
                   className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-6"
                 >
                   Create Account / Sign In
@@ -261,9 +265,13 @@ export default function BusOperatorSignup() {
                   <div>
                     <Label className="text-gray-300">Phone *</Label>
                     <Input
+                      type="tel"
                       value={operatorData.phone}
-                      onChange={(e) => setOperatorData({...operatorData, phone: e.target.value})}
-                      placeholder="+237 xxx xxx xxx"
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/[^0-9]/g, "");
+                        setOperatorData({...operatorData, phone: formatPhone(raw, "+237")});
+                      }}
+                      placeholder="6X-XX-XX-XX"
                       className="bg-white/5 border-white/10 text-white mt-2"
                     />
                   </div>
@@ -345,22 +353,25 @@ export default function BusOperatorSignup() {
                 </div>
 
                 <div>
-                  <Label className="text-gray-300">Address</Label>
-                  <Textarea
+                  <Label className="text-gray-300 mb-2 block">Address</Label>
+                  <AddressAutocomplete
                     value={branchData.address_text}
-                    onChange={(e) => setBranchData({...branchData, address_text: e.target.value})}
-                    placeholder="Full station address"
-                    className="bg-white/5 border-white/10 text-white mt-2"
-                    rows={3}
+                    onChange={(val) => setBranchData({...branchData, address_text: val})}
+                    placeholder="Start typing station address..."
+                    countryCode="CM"
                   />
                 </div>
 
                 <div>
                   <Label className="text-gray-300">Contact Phone</Label>
                   <Input
+                    type="tel"
                     value={branchData.contact_phone}
-                    onChange={(e) => setBranchData({...branchData, contact_phone: e.target.value})}
-                    placeholder="+237 xxx xxx xxx"
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/[^0-9]/g, "");
+                      setBranchData({...branchData, contact_phone: formatPhone(raw, "+237")});
+                    }}
+                    placeholder="6X-XX-XX-XX"
                     className="bg-white/5 border-white/10 text-white mt-2"
                   />
                 </div>
