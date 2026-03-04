@@ -279,16 +279,14 @@ export default function VendorDashboard() {
           <h2 className="text-2xl font-bold text-white mb-2">Vendor Access Required</h2>
           <p className="text-gray-400 text-sm mb-6">
             No active partner account was found for <span className="text-white font-medium">{user?.email}</span>.
-            If you just submitted an application, click "Check Again".
+            If you just submitted an application, try refreshing the page.
           </p>
           <div className="flex flex-col gap-3">
             <Button
-              onClick={() => {
-                queryClient.invalidateQueries({ queryKey: ['vendor-staff-me'] });
-              }}
+              onClick={() => window.location.reload()}
               className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white"
             >
-              Check Again
+              Refresh Page
             </Button>
             <Button
               variant="outline"

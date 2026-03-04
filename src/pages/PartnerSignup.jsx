@@ -24,6 +24,7 @@ export default function PartnerSignup() {
   const [uploadingDoc, setUploadingDoc] = useState(null);
   const [user, setUser] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [existingCheckDone, setExistingCheckDone] = useState(false);
 
   const [formData, setFormData] = useState({
     companyName: "",
@@ -49,6 +50,37 @@ export default function PartnerSignup() {
       .then((u) => { setUser(u); setAuthChecked(true); })
       .catch(() => { setUser(null); setAuthChecked(true); });
   }, []);
+
+  // Prevent re-signup: if user already has a VendorStaff or Vendor, redirect to dashboard
+  useEffect(() => {
+    if (!user?.email) { setExistingCheckDone(true); return; }
+
+    (async () => {
+      try {
+        // Check VendorStaff first
+        const staff = await base44.entities.VendorStaff.filter({ email: user.email });
+        if (staff.length > 0) {
+          console.log("[PartnerSignup] User already has VendorStaff, redirecting");
+          toast.info("You already have a partner account!");
+          window.location.href = createPageUrl("VendorDashboard");
+          return;
+        }
+        // Check Vendor by primary_contact_email
+        const vendors = await base44.entities.Vendor.filter({
+          primary_contact_email: user.email.toLowerCase()
+        });
+        if (vendors.length > 0) {
+          console.log("[PartnerSignup] User already has Vendor, redirecting");
+          toast.info("You already have a partner application! Redirecting...");
+          window.location.href = createPageUrl("VendorDashboard");
+          return;
+        }
+      } catch (e) {
+        console.warn("[PartnerSignup] Existing record check failed:", e);
+      }
+      setExistingCheckDone(true);
+    })();
+  }, [user]);
 
   const handleFileUpload = async (e, field) => {
     const file = e.target.files[0];
@@ -144,14 +176,26 @@ export default function PartnerSignup() {
 
       setIsSubmitting(true);
       try {
+        // ---- Guard: prevent duplicate submission ----
+        const existingStaff = await base44.entities.VendorStaff.filter({ email: user.email });
+        if (existingStaff.length > 0) {
+          toast.info("You already have a partner account! Redirecting...");
+          window.location.href = createPageUrl("VendorDashboard");
+          return;
+        }
+
+        console.log("[PartnerSignup] Creating Vendor for auth email:", user.email);
+
         // Create Vendor first so we have the vendor_id
+        // IMPORTANT: primary_contact_email uses the AUTH email (user.email) — this is
+        // the canonical email used by useVendorStaff's fallback lookup.
         const vendorData = {
           legal_name: formData.companyName,
           display_name: formData.companyName,
           vendor_type: formData.businessType.toUpperCase(),
           description: formData.description || "",
           primary_contact_name: formData.contactName,
-          primary_contact_email: formData.email.toLowerCase(),
+          primary_contact_email: user.email.toLowerCase(),
           primary_contact_phone: `${formData.phoneCode}${stripPhone(formData.phone)}`,
           hq_country: formData.country,
           hq_city: formData.city,
@@ -164,6 +208,7 @@ export default function PartnerSignup() {
           vendorData.license_documents = formData.licenseDocs;
         }
         const vendor = await base44.entities.Vendor.create(vendorData);
+        console.log("[PartnerSignup] Vendor created:", vendor.id);
 
         let createdApplication;
         try {
@@ -187,9 +232,10 @@ export default function PartnerSignup() {
             status: "PENDING",
             vendor_id: vendor.id
           });
+          console.log("[PartnerSignup] VendorApplication created:", createdApplication.id);
 
           // Create the first staff member as OWNER — user is guaranteed to exist (checked above)
-          await base44.entities.VendorStaff.create({
+          const staffRecord = await base44.entities.VendorStaff.create({
             vendor_id: vendor.id,
             email: user.email,
             full_name: formData.contactName,
@@ -197,7 +243,9 @@ export default function PartnerSignup() {
             status: "ACTIVE",
             invitation_sent_at: new Date().toISOString()
           });
+          console.log("[PartnerSignup] VendorStaff created:", staffRecord?.id, "email:", user.email);
         } catch (innerError) {
+          console.error("[PartnerSignup] Inner creation failed:", innerError);
           // Rollback: delete already-created resources
           try { await base44.entities.Vendor.delete(vendor.id); } catch (_) {}
           if (createdApplication) {
@@ -206,12 +254,33 @@ export default function PartnerSignup() {
           throw innerError;
         }
 
-        toast.success("Application submitted! Redirecting to your dashboard...");
-        // Use full page reload (not navigate) so React Query cache is cleared
-        // and useVendorStaff fetches the freshly created VendorStaff record
-        setTimeout(() => { window.location.href = createPageUrl("VendorDashboard"); }, 2000);
+        toast.success("Application submitted! Verifying your account...");
+
+        // Poll to verify VendorStaff is queryable before redirecting
+        // (guards against Base44 eventual consistency delays)
+        let verified = false;
+        for (let attempt = 0; attempt < 4; attempt++) {
+          await new Promise(r => setTimeout(r, 1500));
+          try {
+            const check = await base44.entities.VendorStaff.filter({
+              email: user.email, status: "ACTIVE"
+            });
+            if (check.length > 0) {
+              verified = true;
+              console.log("[PartnerSignup] VendorStaff verified on attempt", attempt + 1);
+              break;
+            }
+          } catch (_) { /* retry */ }
+        }
+
+        if (!verified) {
+          console.warn("[PartnerSignup] VendorStaff not verified after polling — Vendor fallback will handle it");
+        }
+
+        // Full page reload so React Query cache is cleared
+        window.location.href = createPageUrl("VendorDashboard");
       } catch (error) {
-        console.error("Application error:", error);
+        console.error("[PartnerSignup] Application error:", error);
         const errorMsg = error?.message || "Failed to submit application. Please check all required fields.";
         toast.error(errorMsg);
         setIsSubmitting(false);
@@ -222,6 +291,18 @@ export default function PartnerSignup() {
   // Find the selected country's ISO code for Nominatim
   const selectedCountryObj = countries.find(c => c.name === formData.country);
   const countryISOCode = selectedCountryObj?.code || formData.countryCode || null;
+
+  // Show a brief loading spinner while checking for existing records
+  if (user && !existingCheckDone) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-gray-400 text-sm">Checking account status...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
