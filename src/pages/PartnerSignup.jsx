@@ -207,7 +207,9 @@ export default function PartnerSignup() {
         }
 
         toast.success("Application submitted! Redirecting to your dashboard...");
-        setTimeout(() => navigate(createPageUrl("VendorDashboard")), 2000);
+        // Use full page reload (not navigate) so React Query cache is cleared
+        // and useVendorStaff fetches the freshly created VendorStaff record
+        setTimeout(() => { window.location.href = createPageUrl("VendorDashboard"); }, 2000);
       } catch (error) {
         console.error("Application error:", error);
         const errorMsg = error?.message || "Failed to submit application. Please check all required fields.";

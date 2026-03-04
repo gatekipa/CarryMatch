@@ -134,8 +134,9 @@ export default function BusOperatorSignup() {
       return { operator, branch };
     },
     onSuccess: () => {
-      toast.success("Application submitted for approval!");
-      navigate(createPageUrl("VendorBusDashboard"));
+      toast.success("Application submitted for approval! Redirecting...");
+      // Use full page reload to clear any stale React Query cache
+      setTimeout(() => { window.location.href = createPageUrl("VendorBusDashboard"); }, 1500);
     },
     onError: (error) => {
       toast.error("Submission failed: " + error.message);

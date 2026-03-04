@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCurrentUser } from "@/components/hooks/useCurrentUser";
 import { useVendorStaff } from "@/components/hooks/useVendorStaff";
 import { Link } from "react-router-dom";
@@ -52,6 +52,7 @@ import EmptyState from "@/components/shared/EmptyState";
 import QueryErrorFallback from "@/components/shared/QueryErrorFallback";
 
 export default function VendorDashboard() {
+  const queryClient = useQueryClient();
   const { user, loading: userLoading } = useCurrentUser();
   const { data: vendorStaff, isLoading: staffLoading } = useVendorStaff(user?.email);
   const [selectedBranch, setSelectedBranch] = useState("all");
@@ -272,13 +273,33 @@ export default function VendorDashboard() {
 
   if (!vendorStaff) {
     return (
-      <EmptyState
-        icon={Package}
-        title="Vendor Access Required"
-        description="No active partner account was found for your email. Apply to become a logistics partner or contact support."
-        actionLabel="Apply as Partner"
-        onAction={() => window.location.href = createPageUrl("PartnerSignup")}
-      />
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <Card className="p-8 bg-white/5 border-white/10 text-center max-w-md">
+          <Package className="w-14 h-14 mx-auto mb-4 text-gray-400" />
+          <h2 className="text-2xl font-bold text-white mb-2">Vendor Access Required</h2>
+          <p className="text-gray-400 text-sm mb-6">
+            No active partner account was found for <span className="text-white font-medium">{user?.email}</span>.
+            If you just submitted an application, click "Check Again".
+          </p>
+          <div className="flex flex-col gap-3">
+            <Button
+              onClick={() => {
+                queryClient.invalidateQueries({ queryKey: ['vendor-staff-me'] });
+              }}
+              className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white"
+            >
+              Check Again
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => window.location.href = createPageUrl("PartnerSignup")}
+              className="w-full border-white/10 text-gray-300 hover:text-white"
+            >
+              Apply as Partner
+            </Button>
+          </div>
+        </Card>
+      </div>
     );
   }
 

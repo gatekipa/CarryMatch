@@ -13,6 +13,9 @@ export function useVendorStaff(userEmail) {
       return staff[0] || null;
     },
     enabled: !!userEmail,
-    staleTime: 5 * 60 * 1000
+    staleTime: 30 * 1000,           // 30s — don't serve stale null after signup
+    refetchOnMount: 'always',       // always re-check when dashboard mounts
+    retry: 2,                       // retry on network errors
+    retryDelay: 1000
   });
 }
