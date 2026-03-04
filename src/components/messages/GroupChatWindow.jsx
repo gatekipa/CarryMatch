@@ -29,6 +29,7 @@ export default function GroupChatWindow({ groupConversation, currentUser, onBack
   const [isUploading, setIsUploading] = useState(false);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
+  const isMarkingRef = useRef(false);
   const queryClient = useQueryClient();
 
   const { data: messages = [], refetch: refetchMessages } = useQuery({
@@ -50,6 +51,8 @@ export default function GroupChatWindow({ groupConversation, currentUser, onBack
   // Mark messages as read
   useEffect(() => {
     const markAsRead = async () => {
+      if (isMarkingRef.current) return;
+      isMarkingRef.current = true;
       try {
         const unreadMessages = messages.filter(
           m => m.sender_email !== currentUser.email && !(m.read_by || []).includes(currentUser.email)
@@ -60,13 +63,18 @@ export default function GroupChatWindow({ groupConversation, currentUser, onBack
         await Promise.all(
           unreadMessages.map(message => {
             const updatedReadBy = [...(message.read_by || []), currentUser.email];
-            return base44.entities.GroupMessage.update(message.id, { 
+            return base44.entities.GroupMessage.update(message.id, {
               read_by: updatedReadBy
             });
           })
         );
 
-        const updatedParticipants = participants.map(p => 
+        // Fetch fresh conversation to avoid overwriting concurrent changes
+        const freshConversations = await base44.entities.GroupConversation.filter({ id: groupConversation.id });
+        const freshConversation = freshConversations[0];
+        const freshParticipants = freshConversation?.participants || participants;
+
+        const updatedParticipants = freshParticipants.map(p =>
           p.email === currentUser.email
             ? { ...p, unread_count: 0 }
             : p
@@ -79,6 +87,8 @@ export default function GroupChatWindow({ groupConversation, currentUser, onBack
         queryClient.invalidateQueries({ queryKey: ['group-conversations'] });
       } catch (error) {
         console.error('Failed to mark group messages as read:', error);
+      } finally {
+        isMarkingRef.current = false;
       }
     };
 

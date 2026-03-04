@@ -155,56 +155,25 @@ export default function AlternateAirports({
 
       {/* Filter Buttons */}
       <div className="flex flex-wrap gap-2 mb-4">
-        <Button
-          size="sm"
-          variant={filterType === "all" ? "default" : "outline"}
-          onClick={() => setFilterType("all")}
-          className={filterType === "all" 
-            ? "bg-[#9EFF00] text-[#1A1A1A] hover:bg-[#7ACC00]" 
-            : "border-white/10 text-gray-300 hover:text-white hover:bg-white/5"}
-        >
-          All
-        </Button>
-        <Button
-          size="sm"
-          variant={filterType === "metro" ? "default" : "outline"}
-          onClick={() => setFilterType("metro")}
-          className={filterType === "metro" 
-            ? "bg-[#9EFF00] text-[#1A1A1A] hover:bg-[#7ACC00]" 
-            : "border-white/10 text-gray-300 hover:text-white hover:bg-white/5"}
-        >
-          Same Metro
-        </Button>
-        <Button
-          size="sm"
-          variant={filterType === "region" ? "default" : "outline"}
-          onClick={() => setFilterType("region")}
-          className={filterType === "region" 
-            ? "bg-[#9EFF00] text-[#1A1A1A] hover:bg-[#7ACC00]" 
-            : "border-white/10 text-gray-300 hover:text-white hover:bg-white/5"}
-        >
-          In State
-        </Button>
-        <Button
-          size="sm"
-          variant={filterType === "radius" ? "default" : "outline"}
-          onClick={() => setFilterType("radius")}
-          className={filterType === "radius" 
-            ? "bg-[#9EFF00] text-[#1A1A1A] hover:bg-[#7ACC00]" 
-            : "border-white/10 text-gray-300 hover:text-white hover:bg-white/5"}
-        >
-          Within {radius} mi
-        </Button>
-        <Button
-          size="sm"
-          variant={filterType === "country" ? "default" : "outline"}
-          onClick={() => setFilterType("country")}
-          className={filterType === "country" 
-            ? "bg-[#9EFF00] text-[#1A1A1A] hover:bg-[#7ACC00]" 
-            : "border-white/10 text-gray-300 hover:text-white hover:bg-white/5"}
-        >
-          Whole Country
-        </Button>
+        {[
+          { value: "all", label: "All" },
+          { value: "metro", label: "Same Metro" },
+          { value: "region", label: "In State" },
+          { value: "radius", label: `Within ${radius} mi` },
+          { value: "country", label: "Whole Country" },
+        ].map(({ value, label }) => (
+          <Button
+            key={value}
+            size="sm"
+            variant={filterType === value ? "default" : "outline"}
+            onClick={() => setFilterType(value)}
+            className={filterType === value
+              ? "bg-[#9EFF00] text-[#1A1A1A] hover:bg-[#7ACC00]"
+              : "border-white/10 text-gray-300 hover:text-white hover:bg-white/5"}
+          >
+            {label}
+          </Button>
+        ))}
       </div>
 
       {/* Radius Slider (only show when radius filter is active) */}

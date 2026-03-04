@@ -75,6 +75,8 @@ export default function SeatAllocationManager({
 
   const saveMutation = useMutation({
     mutationFn: async () => {
+      if (!operatorId) throw new Error("Operator ID is required");
+      if (totalSeats <= 0) throw new Error("Total seats must be greater than zero");
       if (!isValid) {
         throw new Error("Total allocation exceeds available seats");
       }

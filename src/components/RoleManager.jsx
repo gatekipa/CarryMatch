@@ -4,7 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Shield, Users, Headphones, Plane, Package, Crown, TrendingUp, Megaphone, CreditCard, Settings2 } from "lucide-react";
-import { getRoleBadgeColor, getRoleLabel } from "./permissions/usePermissions";
 import { toast } from "sonner";
 
 const AVAILABLE_ROLES = [

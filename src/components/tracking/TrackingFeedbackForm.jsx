@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MessageSquare, Send, CheckCircle } from "lucide-react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 
 export default function TrackingFeedbackForm({ shipment, vendor }) {
   const [formData, setFormData] = useState({
@@ -46,6 +47,11 @@ export default function TrackingFeedbackForm({ shipment, vendor }) {
           message: ""
         });
       }, 3000);
+    },
+    onError: (error) => {
+      const details = error instanceof Error ? error.message : "Unknown error";
+      toast.error("Failed to submit feedback. Please try again.");
+      console.error("Tracking feedback submission failed:", details);
     }
   });
 

@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Select,
   SelectContent,
@@ -22,8 +23,13 @@ export default function SelectDrawer({
   ...props
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+  const isMobile = useIsMobile();
   const useDrawer = isMobile || forceDrawer;
+
+  // Close drawer when switching to desktop breakpoint
+  useEffect(() => {
+    if (!useDrawer) setIsOpen(false);
+  }, [useDrawer]);
 
   // Extract options from children
   const options = React.Children.toArray(children).map((child) => ({

@@ -14,7 +14,7 @@ import {
   Truck,
   Building2
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import RealTimeTrackingMap from "@/components/shipment/RealTimeTrackingMap";
 
 export default function TrackingDisplay({ shipment, vendor, history, onReset }) {
@@ -158,7 +158,16 @@ export default function TrackingDisplay({ shipment, vendor, history, onReset }) 
               <div className="flex-1">
                 <p className="text-xs text-gray-400">Estimated Delivery</p>
                 <p className="text-[#9EFF00] font-semibold">
-                  {new Date(shipment.pickup_eta).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                  {(() => {
+                    try {
+                      const d = parseISO(shipment.pickup_eta);
+                      return isNaN(d.getTime())
+                        ? "N/A"
+                        : d.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                    } catch {
+                      return "N/A";
+                    }
+                  })()}
                 </p>
               </div>
             </div>

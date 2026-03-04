@@ -3,6 +3,9 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
+const AGENT_SESSION_REFETCH_MS =
+  parseInt(import.meta.env.VITE_AGENT_SESSION_REFETCH_MS) || 30000;
+
 export function useAgentSession(user, operator) {
   const queryClient = useQueryClient();
   const [isLocked, setIsLocked] = useState(false);
@@ -31,7 +34,7 @@ export function useAgentSession(user, operator) {
       return sessions[0];
     },
     enabled: !!user,
-    refetchInterval: 30000
+    refetchInterval: AGENT_SESSION_REFETCH_MS
   });
 
   const { data: sessionBranch } = useQuery({

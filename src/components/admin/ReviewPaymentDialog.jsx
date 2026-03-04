@@ -17,16 +17,11 @@ export default function ReviewPaymentDialog({ payment, onClose, onUpdate }) {
     mutationFn: async () => {
       setIsGeneratingCode(true);
 
-      // Update payment status
-      await base44.entities.SubscriptionPayment.update(payment.id, {
-        status: "APPROVED",
-        reviewed_by: (await base44.auth.me()).email,
-        reviewed_at: new Date().toISOString()
-      });
+      const currentUser = await base44.auth.me();
 
-      // Generate redemption code
+      // Generate redemption code FIRST (before marking as approved)
       const codeString = `CML-${payment.plan_name}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-      
+
       const expiresDate = new Date();
       expiresDate.setDate(expiresDate.getDate() + 30); // 30 days to redeem
 
@@ -36,61 +31,73 @@ export default function ReviewPaymentDialog({ payment, onClose, onUpdate }) {
         plan_name: payment.plan_name,
         billing_period: payment.billing_period,
         payment_id: payment.id,
-        generated_by: (await base44.auth.me()).email,
+        generated_by: currentUser.email,
         generated_at: new Date().toISOString(),
         status: "SENT",
         sent_at: new Date().toISOString(),
         expires_at: expiresDate.toISOString()
       });
 
-      // Update payment with redemption code reference
+      // Only mark APPROVED after code is created and linked
       await base44.entities.SubscriptionPayment.update(payment.id, {
+        status: "APPROVED",
+        reviewed_by: currentUser.email,
+        reviewed_at: new Date().toISOString(),
         redemption_code_id: redemptionCode.id
       });
 
-      // Get vendor details
-      const vendors = await base44.entities.Vendor.list();
-      const vendor = vendors.find(v => v.id === payment.vendor_id);
+      // Get vendor details and attempt to send email
+      let emailSent = false;
+      const vendorResults = await base44.entities.Vendor.filter({ id: payment.vendor_id });
+      const vendor = vendorResults[0];
 
       if (vendor?.primary_contact_email) {
-        // Send email with redemption code
-        await base44.integrations.Core.SendEmail({
-          to: vendor.primary_contact_email,
-          subject: "Payment Approved - Redemption Code",
-          body: `
-            <h2>Payment Approved!</h2>
-            <p>Dear ${vendor.display_name},</p>
-            <p>Your payment has been verified and approved.</p>
-            
-            <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h3 style="margin: 0 0 10px 0;">Your Redemption Code:</h3>
-              <p style="font-size: 24px; font-weight: bold; color: #2563eb; margin: 0; font-family: monospace;">${codeString}</p>
-            </div>
+        try {
+          await base44.integrations.Core.SendEmail({
+            to: vendor.primary_contact_email,
+            subject: "Payment Approved - Redemption Code",
+            body: `
+              <h2>Payment Approved!</h2>
+              <p>Dear ${vendor.display_name},</p>
+              <p>Your payment has been verified and approved.</p>
 
-            <p><strong>Plan:</strong> ${payment.plan_name}</p>
-            <p><strong>Billing Period:</strong> ${payment.billing_period}</p>
-            <p><strong>Amount Paid:</strong> $${payment.amount}</p>
-            
-            <h3>How to Activate:</h3>
-            <ol>
-              <li>Log in to your vendor dashboard</li>
-              <li>Go to Billing & Subscription</li>
-              <li>Click "Redeem Code"</li>
-              <li>Enter your code: <strong>${codeString}</strong></li>
-            </ol>
+              <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <h3 style="margin: 0 0 10px 0;">Your Redemption Code:</h3>
+                <p style="font-size: 24px; font-weight: bold; color: #2563eb; margin: 0; font-family: monospace;">${codeString}</p>
+              </div>
 
-            <p style="color: #ef4444;"><strong>Important:</strong> This code expires on ${format(expiresDate, "MMMM d, yyyy")}. Please redeem it before then.</p>
+              <p><strong>Plan:</strong> ${payment.plan_name}</p>
+              <p><strong>Billing Period:</strong> ${payment.billing_period}</p>
+              <p><strong>Amount Paid:</strong> $${payment.amount}</p>
 
-            <p>Thank you for choosing CarryMatch!</p>
-            <p>Best regards,<br/>The CarryMatch Team</p>
-          `
-        });
+              <h3>How to Activate:</h3>
+              <ol>
+                <li>Log in to your vendor dashboard</li>
+                <li>Go to Billing & Subscription</li>
+                <li>Click "Redeem Code"</li>
+                <li>Enter your code: <strong>${codeString}</strong></li>
+              </ol>
+
+              <p style="color: #ef4444;"><strong>Important:</strong> This code expires on ${format(expiresDate, "MMMM d, yyyy")}. Please redeem it before then.</p>
+
+              <p>Thank you for choosing CarryMatch!</p>
+              <p>Best regards,<br/>The CarryMatch Team</p>
+            `
+          });
+          emailSent = true;
+        } catch (emailError) {
+          console.error("Failed to send approval email:", emailError);
+        }
       }
 
-      return redemptionCode;
+      return { redemptionCode, emailSent };
     },
-    onSuccess: () => {
-      toast.success("Payment approved and redemption code sent!");
+    onSuccess: ({ emailSent }) => {
+      toast.success(
+        emailSent
+          ? "Payment approved and redemption code sent!"
+          : "Payment approved. Email could not be sent — share the code manually."
+      );
       onUpdate();
       onClose();
     },
@@ -102,16 +109,18 @@ export default function ReviewPaymentDialog({ payment, onClose, onUpdate }) {
 
   const rejectMutation = useMutation({
     mutationFn: async () => {
+      const currentUser = await base44.auth.me();
+
       await base44.entities.SubscriptionPayment.update(payment.id, {
         status: "REJECTED",
-        reviewed_by: (await base44.auth.me()).email,
+        reviewed_by: currentUser.email,
         reviewed_at: new Date().toISOString(),
         rejection_reason: rejectionReason
       });
 
       // Get vendor details
-      const vendors = await base44.entities.Vendor.list();
-      const vendor = vendors.find(v => v.id === payment.vendor_id);
+      const vendorResults = await base44.entities.Vendor.filter({ id: payment.vendor_id });
+      const vendor = vendorResults[0];
 
       if (vendor?.primary_contact_email) {
         // Send rejection email
@@ -142,6 +151,10 @@ export default function ReviewPaymentDialog({ payment, onClose, onUpdate }) {
       toast.success("Payment rejected and vendor notified");
       onUpdate();
       onClose();
+    },
+    onError: (error) => {
+      console.error("Failed to reject payment:", error);
+      toast.error("Failed to reject payment. Please try again.");
     }
   });
 

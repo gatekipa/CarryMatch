@@ -5,13 +5,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Save, 
-  X, 
-  Plus, 
-  Globe, 
-  Plane,
-  Trash2 
+import {
+  Save,
+  X,
+  Plus,
+  Globe,
+  Plane
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -150,7 +149,11 @@ export default function UserProfileEdit({ user, editedProfile, setEditedProfile,
                 <Input
                   value={newLanguage}
                   onChange={(e) => setNewLanguage(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleAddLanguage(newLanguage)}
+                  onKeyDown={(e) => {
+                    if (e.key !== "Enter" || e.nativeEvent.isComposing) return;
+                    e.preventDefault();
+                    handleAddLanguage(newLanguage.trim());
+                  }}
                   placeholder="Enter language..."
                   className="bg-white/5 border-white/10 text-white flex-1"
                 />
