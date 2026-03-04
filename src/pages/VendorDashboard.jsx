@@ -53,7 +53,7 @@ import QueryErrorFallback from "@/components/shared/QueryErrorFallback";
 
 export default function VendorDashboard() {
   const { user, loading: userLoading } = useCurrentUser();
-  const { data: vendorStaff } = useVendorStaff(user?.email);
+  const { data: vendorStaff, isLoading: staffLoading } = useVendorStaff(user?.email);
   const [selectedBranch, setSelectedBranch] = useState("all");
   const [selectedMode, setSelectedMode] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -266,7 +266,7 @@ export default function VendorDashboard() {
     }
   };
 
-  if (userLoading || !user) {
+  if (userLoading || !user || staffLoading) {
     return <LoadingCard />;
   }
 
@@ -275,9 +275,9 @@ export default function VendorDashboard() {
       <EmptyState
         icon={Package}
         title="Vendor Access Required"
-        description="You need to be a registered vendor staff member"
-        actionLabel="Sign In"
-        onAction={() => base44.auth.redirectToLogin()}
+        description="No active partner account was found for your email. Apply to become a logistics partner or contact support."
+        actionLabel="Apply as Partner"
+        onAction={() => window.location.href = createPageUrl("PartnerSignup")}
       />
     );
   }
