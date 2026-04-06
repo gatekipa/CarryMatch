@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { BusOperator, Trip } from "@/api/entities";
+import { checkSeatAllocation } from "@/api/functions";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -13,12 +15,45 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import SeatMapSelector from "../components/bus/SeatMapSelector";
 import QRTracker from "../components/bus/QRTracker";
+import { useCurrentUser } from "../components/hooks/useCurrentUser";
+import { useAuth } from "@/lib/AuthContext";
+
+const getLegacyBusRouteEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.BusRoute;
+};
+
+const getLegacyOperatorBranchEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.OperatorBranch;
+};
+
+const getLegacyVehicleEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.Vehicle;
+};
+
+const getLegacySeatMapTemplateEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.SeatMapTemplate;
+};
+
+const getLegacyTripSeatInventoryEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.TripSeatInventory;
+};
 
 export default function BusTripDetails() {
   const navigate = useNavigate();
   const urlParams = new URLSearchParams(window.location.search);
   const tripId = urlParams.get("id");
-  const [user, setUser] = useState(null);
+  const { user } = useCurrentUser();
+  const { navigateToLogin } = useAuth();
   const [selectedSeats, setSelectedSeats] = useState([]);
   const [isProceeding, setIsProceeding] = useState(false);
   const [passengerInfo, setPassengerInfo] = useState({
@@ -26,24 +61,25 @@ export default function BusTripDetails() {
     phone: "",
     email: ""
   });
+  const hasPrefilledPassengerInfo = useRef(false);
 
   useEffect(() => {
-    base44.auth.me()
-      .then(u => {
-        setUser(u);
-        setPassengerInfo({
-          name: u.full_name || "",
-          phone: u.phone_number || "",
-          email: u.email
-        });
-      })
-      .catch(() => setUser(null));
-  }, []);
+    if (!user || hasPrefilledPassengerInfo.current) {
+      return;
+    }
+
+    setPassengerInfo({
+      name: user.full_name || "",
+      phone: user.phone_number || "",
+      email: user.email
+    });
+    hasPrefilledPassengerInfo.current = true;
+  }, [user]);
 
   const { data: trip } = useQuery({
     queryKey: ['trip-detail', tripId],
     queryFn: async () => {
-      const trips = await base44.entities.Trip.filter({ id: tripId });
+      const trips = await Trip.filter({ id: tripId });
       return trips[0];
     },
     enabled: !!tripId
@@ -52,7 +88,7 @@ export default function BusTripDetails() {
   const { data: route } = useQuery({
     queryKey: ['trip-route', trip?.route_id],
     queryFn: async () => {
-      const routes = await base44.entities.BusRoute.filter({ id: trip.route_id });
+      const routes = await getLegacyBusRouteEntity().filter({ id: trip.route_id });
       return routes[0];
     },
     enabled: !!trip
@@ -61,7 +97,7 @@ export default function BusTripDetails() {
   const { data: operator } = useQuery({
     queryKey: ['trip-operator', trip?.operator_id],
     queryFn: async () => {
-      const ops = await base44.entities.BusOperator.filter({ id: trip.operator_id });
+      const ops = await BusOperator.filter({ id: trip.operator_id });
       return ops[0];
     },
     enabled: !!trip
@@ -69,14 +105,14 @@ export default function BusTripDetails() {
 
   const { data: branches = [] } = useQuery({
     queryKey: ['trip-branches', operator?.id],
-    queryFn: () => base44.entities.OperatorBranch.filter({ operator_id: operator.id }),
+    queryFn: () => getLegacyOperatorBranchEntity().filter({ operator_id: operator.id }),
     enabled: !!operator
   });
 
   const { data: vehicle } = useQuery({
     queryKey: ['trip-vehicle', trip?.vehicle_id],
     queryFn: async () => {
-      const vehicles = await base44.entities.Vehicle.filter({ id: trip.vehicle_id });
+      const vehicles = await getLegacyVehicleEntity().filter({ id: trip.vehicle_id });
       return vehicles[0];
     },
     enabled: !!trip
@@ -85,7 +121,7 @@ export default function BusTripDetails() {
   const { data: template } = useQuery({
     queryKey: ['vehicle-template', vehicle?.seat_map_template_id],
     queryFn: async () => {
-      const templates = await base44.entities.SeatMapTemplate.filter({ id: vehicle.seat_map_template_id });
+      const templates = await getLegacySeatMapTemplateEntity().filter({ id: vehicle.seat_map_template_id });
       return templates[0];
     },
     enabled: !!vehicle
@@ -93,7 +129,7 @@ export default function BusTripDetails() {
 
   const { data: seatInventory = [] } = useQuery({
     queryKey: ['seat-inventory', tripId],
-    queryFn: () => base44.entities.TripSeatInventory.filter({ trip_id: tripId }),
+    queryFn: () => getLegacyTripSeatInventoryEntity().filter({ trip_id: tripId }),
     enabled: !!tripId,
     refetchInterval: 5000
   });
@@ -110,7 +146,7 @@ export default function BusTripDetails() {
     
     if (!user) {
       toast.error("Please sign in to continue");
-      base44.auth.redirectToLogin();
+      navigateToLogin();
       return;
     }
 
@@ -127,7 +163,7 @@ export default function BusTripDetails() {
     // Check online allocation before holding seats
     setIsProceeding(true);
     try {
-      const allocationCheck = await base44.functions.invoke('checkSeatAllocation', {
+      const allocationCheck = await checkSeatAllocation({
         trip_id: tripId,
         seat_codes: selectedSeats,
         channel: 'online',
@@ -143,7 +179,7 @@ export default function BusTripDetails() {
       const holdUntil = new Date(Date.now() + 15 * 60 * 1000).toISOString();
       
       // Re-fetch fresh seat data to avoid stale cache race condition
-      const freshSeats = await base44.entities.TripSeatInventory.filter({ trip_id: tripId });
+      const freshSeats = await getLegacyTripSeatInventoryEntity().filter({ trip_id: tripId });
       const heldSeatIds = []; // Track successfully held seats for rollback
       
       for (const seatCode of selectedSeats) {
@@ -156,7 +192,7 @@ export default function BusTripDetails() {
         if (seat.seat_status !== 'available') {
           // Rollback any seats we already held
           for (const heldId of heldSeatIds) {
-            await base44.entities.TripSeatInventory.update(heldId, {
+            await getLegacyTripSeatInventoryEntity().update(heldId, {
               seat_status: 'available', held_until: null, held_by_order_id: null
             }).catch(e => console.error('Rollback failed:', e));
           }
@@ -165,7 +201,7 @@ export default function BusTripDetails() {
         }
         
         // Attempt to hold the seat
-        await base44.entities.TripSeatInventory.update(seat.id, {
+        await getLegacyTripSeatInventoryEntity().update(seat.id, {
           seat_status: 'held',
           held_until: holdUntil,
           held_by_order_id: user.email

@@ -1,24 +1,36 @@
 import { base44 } from './base44Client';
 
+const getLegacyCoreIntegrations = () => {
+  // Legacy Base44 integration compatibility: keep using the SDK-backed
+  // integration surface until these actions move to app-owned APIs.
+  return base44.integrations.Core;
+};
 
+const createIntegrationsBoundary = () => {
+  const core = getLegacyCoreIntegrations();
 
+  return {
+    // Integrations access entrypoint
+    Core: core,
 
-export const Core = base44.integrations.Core;
+    // Future migration seam: uploads, functions, email/SMS, image
+    // generation, and file extraction should move behind app-owned
+    // server/API layers without breaking current importers first.
+    InvokeLLM: core.InvokeLLM,
+    SendEmail: core.SendEmail,
+    SendSMS: core.SendSMS,
+    UploadFile: core.UploadFile,
+    GenerateImage: core.GenerateImage,
+    ExtractDataFromUploadedFile: core.ExtractDataFromUploadedFile,
+  };
+};
 
-export const InvokeLLM = base44.integrations.Core.InvokeLLM;
+const integrationsBoundary = createIntegrationsBoundary();
 
-export const SendEmail = base44.integrations.Core.SendEmail;
-
-export const SendSMS = base44.integrations.Core.SendSMS;
-
-export const UploadFile = base44.integrations.Core.UploadFile;
-
-export const GenerateImage = base44.integrations.Core.GenerateImage;
-
-export const ExtractDataFromUploadedFile = base44.integrations.Core.ExtractDataFromUploadedFile;
-
-
-
-
-
-
+export const Core = integrationsBoundary.Core;
+export const InvokeLLM = integrationsBoundary.InvokeLLM;
+export const SendEmail = integrationsBoundary.SendEmail;
+export const SendSMS = integrationsBoundary.SendSMS;
+export const UploadFile = integrationsBoundary.UploadFile;
+export const GenerateImage = integrationsBoundary.GenerateImage;
+export const ExtractDataFromUploadedFile = integrationsBoundary.ExtractDataFromUploadedFile;

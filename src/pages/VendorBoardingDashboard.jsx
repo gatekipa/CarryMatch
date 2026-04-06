@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { BusOperator, Trip } from "@/api/entities";
+import { sendCancelNotice, sendDelayNotice, sendTemplateMessage } from "@/api/functions";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -15,14 +17,57 @@ import { Bus, CheckCircle, Clock, Users, Search, Printer, FileText, Send, AlertT
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useBusVendorPermissions } from "../components/bus/useBusVendorPermissions";
+import { useCurrentUser } from "@/components/hooks/useCurrentUser";
+
+const getLegacyBusRouteEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.BusRoute;
+};
+
+const getLegacyOperatorBranchEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.OperatorBranch;
+};
+
+const getLegacyTripSeatInventoryEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.TripSeatInventory;
+};
+
+const getLegacyOrderEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.Order;
+};
+
+const getLegacyTicketEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.Ticket;
+};
+
+const getLegacyOfflineSaleEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.OfflineSale;
+};
+
+const getLegacyAuditLogEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.AuditLog;
+};
 
 export default function VendorBoardingDashboard() {
   const urlParams = new URLSearchParams(window.location.search);
   const tripId = urlParams.get("id");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user } = useCurrentUser();
   
-  const [user, setUser] = useState(null);
   const [ticketCodeInput, setTicketCodeInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -34,14 +79,10 @@ export default function VendorBoardingDashboard() {
   const [reminderType, setReminderType] = useState("reminder");
   const [customReminderMessage, setCustomReminderMessage] = useState("");
 
-  useEffect(() => {
-    base44.auth.me().then(setUser).catch(() => setUser(null));
-  }, []);
-
   const { data: operator } = useQuery({
     queryKey: ['boarding-operator', user?.email],
     queryFn: async () => {
-      const ops = await base44.entities.BusOperator.filter({ created_by: user.email });
+      const ops = await BusOperator.filter({ created_by: user.email });
       return ops[0];
     },
     enabled: !!user
@@ -52,7 +93,7 @@ export default function VendorBoardingDashboard() {
   const { data: trip } = useQuery({
     queryKey: ['boarding-trip', tripId],
     queryFn: async () => {
-      const trips = await base44.entities.Trip.filter({ id: tripId });
+      const trips = await Trip.filter({ id: tripId });
       return trips[0];
     },
     enabled: !!tripId,
@@ -62,7 +103,7 @@ export default function VendorBoardingDashboard() {
   const { data: route } = useQuery({
     queryKey: ['boarding-route', trip?.route_id],
     queryFn: async () => {
-      const routes = await base44.entities.BusRoute.filter({ id: trip.route_id });
+      const routes = await getLegacyBusRouteEntity().filter({ id: trip.route_id });
       return routes[0];
     },
     enabled: !!trip
@@ -72,7 +113,7 @@ export default function VendorBoardingDashboard() {
     queryKey: ['boarding-branch', trip?.departure_branch_id],
     queryFn: async () => {
       if (!trip.departure_branch_id) return null;
-      const branches = await base44.entities.OperatorBranch.filter({ id: trip.departure_branch_id });
+      const branches = await getLegacyOperatorBranchEntity().filter({ id: trip.departure_branch_id });
       return branches[0];
     },
     enabled: !!trip?.departure_branch_id
@@ -80,14 +121,14 @@ export default function VendorBoardingDashboard() {
 
   const { data: seatInventory = [] } = useQuery({
     queryKey: ['boarding-inventory', tripId],
-    queryFn: () => base44.entities.TripSeatInventory.filter({ trip_id: tripId }),
+    queryFn: () => getLegacyTripSeatInventoryEntity().filter({ trip_id: tripId }),
     enabled: !!tripId,
     refetchInterval: 5000
   });
 
   const { data: orders = [] } = useQuery({
     queryKey: ['boarding-orders', tripId],
-    queryFn: () => base44.entities.Order.filter({ trip_id: tripId, order_status: "paid" }),
+    queryFn: () => getLegacyOrderEntity().filter({ trip_id: tripId, order_status: "paid" }),
     enabled: !!tripId,
     refetchInterval: 5000
   });
@@ -96,7 +137,7 @@ export default function VendorBoardingDashboard() {
     queryKey: ['boarding-tickets', orders.map(o => o.id)],
     queryFn: async () => {
       if (!orders.length) return [];
-      return await base44.entities.Ticket.filter({ order_id: { $in: orders.map(o => o.id) } });
+      return await getLegacyTicketEntity().filter({ order_id: { $in: orders.map(o => o.id) } });
     },
     enabled: orders.length > 0,
     refetchInterval: 5000
@@ -104,14 +145,14 @@ export default function VendorBoardingDashboard() {
 
   const { data: offlineSales = [] } = useQuery({
     queryKey: ['boarding-offline', tripId],
-    queryFn: () => base44.entities.OfflineSale.filter({ trip_id: tripId }),
+    queryFn: () => getLegacyOfflineSaleEntity().filter({ trip_id: tripId }),
     enabled: !!tripId,
     refetchInterval: 5000
   });
 
   const { data: branches = [] } = useQuery({
     queryKey: ['all-operator-branches', operator?.id],
-    queryFn: () => base44.entities.OperatorBranch.filter({ operator_id: operator.id }),
+    queryFn: () => getLegacyOperatorBranchEntity().filter({ operator_id: operator.id }),
     enabled: !!operator
   });
 
@@ -126,13 +167,13 @@ export default function VendorBoardingDashboard() {
         throw new Error("Already checked in");
       }
 
-      await base44.entities.Ticket.update(ticket.id, {
+      await getLegacyTicketEntity().update(ticket.id, {
         checkin_status: 'checked_in',
         checkin_time: new Date().toISOString(),
         checked_in_by_user_id: user.email
       });
 
-      await base44.entities.AuditLog.create({
+      await getLegacyAuditLogEntity().create({
         actor_user_id: user.email,
         operator_id: operator.id,
         action_type: "passenger_checked_in",
@@ -159,13 +200,13 @@ export default function VendorBoardingDashboard() {
 
   const undoCheckInMutation = useMutation({
     mutationFn: async (ticketId) => {
-      await base44.entities.Ticket.update(ticketId, {
+      await getLegacyTicketEntity().update(ticketId, {
         checkin_status: 'not_checked_in',
         checkin_time: null,
         checked_in_by_user_id: null
       });
 
-      await base44.entities.AuditLog.create({
+      await getLegacyAuditLogEntity().create({
         actor_user_id: user.email,
         operator_id: operator.id,
         action_type: "undo_checkin",
@@ -183,7 +224,7 @@ export default function VendorBoardingDashboard() {
   });
 
   const updateTripStatusMutation = useMutation({
-    mutationFn: ({ status }) => base44.entities.Trip.update(tripId, { trip_status: status }),
+    mutationFn: ({ status }) => Trip.update(tripId, { trip_status: status }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['boarding-trip'] });
       toast.success("Trip status updated!");
@@ -192,7 +233,7 @@ export default function VendorBoardingDashboard() {
 
   const sendReminderMutation = useMutation({
     mutationFn: async ({ template_type }) => {
-      const response = await base44.functions.invoke('sendTemplateMessage', {
+      const response = await sendTemplateMessage({
         trip_id: tripId,
         template_type: template_type,
         recipient_filter: 'not_checked_in_only',
@@ -215,7 +256,7 @@ export default function VendorBoardingDashboard() {
       const newDeparture = new Date(trip.departure_datetime);
       newDeparture.setMinutes(newDeparture.getMinutes() + parseInt(delayMinutes));
       
-      const response = await base44.functions.invoke('sendDelayNotice', {
+      const response = await sendDelayNotice({
         trip_id: tripId,
         new_departure_time: newDeparture.toISOString(),
         delay_reason: reason,
@@ -237,7 +278,7 @@ export default function VendorBoardingDashboard() {
 
   const sendCancelMutation = useMutation({
     mutationFn: async (reason) => {
-      const response = await base44.functions.invoke('sendCancelNotice', {
+      const response = await sendCancelNotice({
         trip_id: tripId,
         cancel_reason: reason
       });

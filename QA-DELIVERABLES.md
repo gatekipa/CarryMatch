@@ -1,3 +1,8 @@
+# Legacy Base44-Era Document
+
+This file was produced during the Base44-era deployment of CarryMatch.
+It is retained for historical reference during migration, but it should not be treated as the source of truth for the in-progress post-Base44 architecture.
+
 # CarryMatch QA Deliverables
 
 ## 1. Consolidated QA Tracker

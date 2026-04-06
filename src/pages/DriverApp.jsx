@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { BusOperator, Trip, TripStatusUpdate } from "@/api/entities";
+import { updateBusLocation } from "@/api/functions";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCurrentUser } from "../components/hooks/useCurrentUser";
 import LoadingCard from "../components/shared/LoadingCard";
@@ -14,9 +16,35 @@ import { toast } from "sonner";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { useOfflineSync } from "../components/driver/useOfflineSync";
 import RouteOptimizer from "../components/driver/RouteOptimizer";
+import { useAuth } from "@/lib/AuthContext";
+
+const getLegacyDriverEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.Driver;
+};
+
+const getLegacyBusRouteEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.BusRoute;
+};
+
+const getLegacyOrderEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.Order;
+};
+
+const getLegacyOfflineSaleEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.OfflineSale;
+};
 
 export default function DriverApp() {
   const { user, loading: userLoading } = useCurrentUser();
+  const { navigateToLogin, logout } = useAuth();
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [locationEnabled, setLocationEnabled] = useState(false);
   const [currentLocation, setCurrentLocation] = useState(null);
@@ -29,7 +57,7 @@ export default function DriverApp() {
     queryKey: ['driver-profile', user?.email],
     queryFn: async () => {
       // Try finding by email first (any status)
-      const drivers = await base44.entities.Driver.filter({ 
+      const drivers = await getLegacyDriverEntity().filter({ 
         email: user.email
       });
       if (drivers.length > 0) return drivers[0];
@@ -46,7 +74,7 @@ export default function DriverApp() {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
-      const trips = await base44.entities.Trip.filter({
+      const trips = await Trip.filter({
         driver_id: driver.id,
         departure_datetime: { $gte: today.toISOString() },
         trip_status: { $in: ["scheduled", "boarding", "departed", "delayed"] }
@@ -70,7 +98,7 @@ export default function DriverApp() {
     queryFn: async () => {
       if (!assignedTrips.length) return [];
       const routeIds = [...new Set(assignedTrips.map(t => t.route_id))];
-      const routes = await base44.entities.BusRoute.filter({
+      const routes = await getLegacyBusRouteEntity().filter({
         id: { $in: routeIds }
       });
       localStorage.setItem('driver-routes-cache', JSON.stringify(routes));
@@ -89,7 +117,7 @@ export default function DriverApp() {
     queryFn: async () => {
       if (!assignedTrips.length) return [];
       const operatorIds = [...new Set(assignedTrips.map(t => t.operator_id))];
-      return await base44.entities.BusOperator.filter({
+      return await BusOperator.filter({
         id: { $in: operatorIds }
       });
     },
@@ -102,12 +130,12 @@ export default function DriverApp() {
     queryFn: async () => {
       if (!selectedTrip) return [];
 
-      const orders = await base44.entities.Order.filter({
+      const orders = await getLegacyOrderEntity().filter({
         trip_id: selectedTrip.id,
         order_status: "paid"
       });
 
-      const offlineSales = await base44.entities.OfflineSale.filter({
+      const offlineSales = await getLegacyOfflineSaleEntity().filter({
         trip_id: selectedTrip.id
       });
 
@@ -159,8 +187,8 @@ export default function DriverApp() {
         return { tripId, status, offline: true };
       }
 
-      await base44.entities.Trip.update(tripId, { trip_status: status });
-      await base44.entities.TripStatusUpdate.create({
+      await Trip.update(tripId, { trip_status: status });
+      await TripStatusUpdate.create({
         trip_id: tripId,
         update_type: status === 'departed' ? 'departed' : 
                      status === 'delayed' ? 'delayed' : 
@@ -195,7 +223,7 @@ export default function DriverApp() {
         return { offline: true };
       }
 
-      const response = await base44.functions.invoke('updateBusLocation', {
+      const response = await updateBusLocation({
         trip_id: tripId,
         latitude,
         longitude,
@@ -285,7 +313,7 @@ export default function DriverApp() {
         icon={Bus}
         title="Driver App"
         actionLabel="Sign In"
-        onAction={() => base44.auth.redirectToLogin()}
+        onAction={navigateToLogin}
       />
     );
   }
@@ -393,7 +421,7 @@ export default function DriverApp() {
                     <p className="text-white">{driver.phone_number}</p>
                   </div>
                   <Button 
-                    onClick={() => base44.auth.logout()} 
+                    onClick={() => logout(false)} 
                     variant="outline" 
                     className="w-full border-red-500/30 text-red-400"
                   >

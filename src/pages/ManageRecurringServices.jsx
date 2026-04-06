@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { generateRecurringTrips } from "@/api/functions";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -15,11 +16,45 @@ import SeatAllocationManager from "../components/bus/SeatAllocationManager";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import SeatSelector from "../components/bus/SeatSelector";
+import { useCurrentUser } from "../components/hooks/useCurrentUser";
+import { useBusOperator } from "../components/hooks/useBusOperator";
+import { useAuth } from "@/lib/AuthContext";
+
+const getLegacyRecurringServiceEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.RecurringService;
+};
+
+const getLegacyRouteTemplateEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.RouteTemplate;
+};
+
+const getLegacyVehicleEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.Vehicle;
+};
+
+const getLegacySeatMapTemplateEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.SeatMapTemplate;
+};
+
+const getLegacyOperatorBranchEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.OperatorBranch;
+};
 
 export default function ManageRecurringServices() {
   const queryClient = useQueryClient();
-  const [user, setUser] = useState(null);
-  const [authChecked, setAuthChecked] = useState(false);
+  const { user, loading } = useCurrentUser();
+  const { navigateToLogin } = useAuth();
+  const { data: operator } = useBusOperator(user?.email);
   const [showDialog, setShowDialog] = useState(false);
   const [editingService, setEditingService] = useState(null);
   const [generatingFor, setGeneratingFor] = useState(null);
@@ -52,46 +87,33 @@ export default function ManageRecurringServices() {
     status: "active"
   });
 
-  useEffect(() => {
-    base44.auth.me().then(u => { setUser(u); setAuthChecked(true); }).catch(() => { setUser(null); setAuthChecked(true); });
-  }, []);
-
-  const { data: operator } = useQuery({
-    queryKey: ['my-bus-operator', user?.email],
-    queryFn: async () => {
-      const ops = await base44.entities.BusOperator.filter({ created_by: user.email });
-      return ops[0];
-    },
-    enabled: !!user
-  });
-
   const { data: services = [], isLoading } = useQuery({
     queryKey: ['recurring-services', operator?.id],
-    queryFn: () => base44.entities.RecurringService.filter({ operator_id: operator.id }),
+    queryFn: () => getLegacyRecurringServiceEntity().filter({ operator_id: operator.id }),
     enabled: !!operator
   });
 
   const { data: routeTemplates = [] } = useQuery({
     queryKey: ['route-templates', operator?.id],
-    queryFn: () => base44.entities.RouteTemplate.filter({ operator_id: operator.id, is_active: true }),
+    queryFn: () => getLegacyRouteTemplateEntity().filter({ operator_id: operator.id, is_active: true }),
     enabled: !!operator
   });
 
   const { data: vehicles = [] } = useQuery({
     queryKey: ['vehicles-list', operator?.id],
-    queryFn: () => base44.entities.Vehicle.filter({ operator_id: operator.id }),
+    queryFn: () => getLegacyVehicleEntity().filter({ operator_id: operator.id }),
     enabled: !!operator
   });
 
   const { data: seatMapTemplates = [] } = useQuery({
     queryKey: ['seat-templates-list', operator?.id],
-    queryFn: () => base44.entities.SeatMapTemplate.filter({ operator_id: operator.id }),
+    queryFn: () => getLegacySeatMapTemplateEntity().filter({ operator_id: operator.id }),
     enabled: !!operator
   });
 
   const { data: branches = [] } = useQuery({
     queryKey: ['branches-for-allocation', operator?.id],
-    queryFn: () => base44.entities.OperatorBranch.filter({ operator_id: operator.id }),
+    queryFn: () => getLegacyOperatorBranchEntity().filter({ operator_id: operator.id }),
     enabled: !!operator
   });
 
@@ -107,9 +129,9 @@ export default function ManageRecurringServices() {
       };
 
       if (editingService) {
-        return await base44.entities.RecurringService.update(editingService.id, payload);
+        return await getLegacyRecurringServiceEntity().update(editingService.id, payload);
       }
-      return await base44.entities.RecurringService.create(payload);
+      return await getLegacyRecurringServiceEntity().create(payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recurring-services'] });
@@ -119,7 +141,7 @@ export default function ManageRecurringServices() {
   });
 
   const toggleServiceStatusMutation = useMutation({
-    mutationFn: ({ serviceId, status }) => base44.entities.RecurringService.update(serviceId, { status }),
+    mutationFn: ({ serviceId, status }) => getLegacyRecurringServiceEntity().update(serviceId, { status }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recurring-services'] });
       toast.success("Service status updated!");
@@ -127,7 +149,7 @@ export default function ManageRecurringServices() {
   });
 
   const deleteServiceMutation = useMutation({
-    mutationFn: (id) => base44.entities.RecurringService.delete(id),
+    mutationFn: (id) => getLegacyRecurringServiceEntity().delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recurring-services'] });
       toast.success("Service deleted");
@@ -136,7 +158,7 @@ export default function ManageRecurringServices() {
 
   const generateTripsMutation = useMutation({
     mutationFn: async ({ serviceId, daysAhead }) => {
-      const response = await base44.functions.invoke('generateRecurringTrips', {
+      const response = await generateRecurringTrips({
         service_id: serviceId,
         days_ahead: daysAhead
       });
@@ -210,13 +232,13 @@ export default function ManageRecurringServices() {
     });
   };
 
-  if (authChecked && !user) {
+  if (!loading && !user) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="p-8 rounded-xl bg-white/5 border border-white/10 text-center max-w-md">
           <h3 className="text-xl font-bold text-white mb-2">Sign In Required</h3>
           <p className="text-gray-400 text-sm mb-5">Sign in to access this page.</p>
-          <button onClick={() => base44.auth.redirectToLogin()} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+          <button onClick={navigateToLogin} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
             Sign In
           </button>
         </div>

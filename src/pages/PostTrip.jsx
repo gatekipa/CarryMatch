@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import React, { useRef, useState, useEffect } from "react";
+import { Trip } from "@/api/entities";
+import { intelligentMatcher } from "@/api/functions";
 import { useNavigate, Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
@@ -15,16 +16,19 @@ import { motion, AnimatePresence } from "framer-motion";
 import AirportAutocomplete from "../components/airports/AirportAutocomplete";
 import { getAirportByIATA } from "../components/airports/airportsData";
 import { toast } from "sonner";
+import { useCurrentUser } from "../components/hooks/useCurrentUser";
+import { useAuth } from "@/lib/AuthContext";
 
 export default function PostTrip() {
   const navigate = useNavigate();
   const urlParams = new URLSearchParams(window.location.search);
   const editId = urlParams.get("id");
+  const { user, loading: userLoading } = useCurrentUser();
+  const { navigateToLogin } = useAuth();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
-  const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!!editId);
   const [hasFlexibleDates, setHasFlexibleDates] = useState(false);
   const [flexibilityDays, setFlexibilityDays] = useState("3");
   const [weightPreset, setWeightPreset] = useState("custom");
@@ -35,12 +39,18 @@ export default function PostTrip() {
 
   const [profileIncomplete, setProfileIncomplete] = useState(false);
   const [missingFields, setMissingFields] = useState([]);
+  const hasInitializedProfileState = useRef(false);
 
   useEffect(() => {
     const fetchUser = async () => {
+      if (userLoading || !user || hasInitializedProfileState.current) {
+        return;
+      }
+
+      hasInitializedProfileState.current = true;
+
       try {
-        const currentUser = await base44.auth.me();
-        setUser(currentUser);
+        const currentUser = user;
 
         // Check profile completeness — require name, phone, photo, location
         const missing = [];
@@ -64,14 +74,11 @@ export default function PostTrip() {
         }
       } catch (error) {
         console.error("❌ Authentication failed:", error);
-        setUser(null);
-      } finally {
-        if (!editId) setIsLoading(false);
       }
     };
     
     fetchUser();
-  }, [editId]);
+  }, [editId, user, userLoading]);
 
   const [formData, setFormData] = useState({
     from_city: "",
@@ -96,7 +103,7 @@ export default function PostTrip() {
     if (editId) {
       const fetchTrip = async () => {
         try {
-          const trips = await base44.entities.Trip.filter({ id: editId });
+          const trips = await Trip.filter({ id: editId });
           if (trips.length > 0) {
             const trip = trips[0];
             setFormData({
@@ -217,7 +224,7 @@ export default function PostTrip() {
     
     if (!user) {
       toast.error("Please sign in to post a trip");
-      base44.auth.redirectToLogin();
+      navigateToLogin();
       return;
     }
     
@@ -324,13 +331,13 @@ export default function PostTrip() {
       let resultTrip;
 
       if (editId) {
-        await base44.entities.Trip.update(editId, tripData);
+        await Trip.update(editId, tripData);
         resultTrip = { ...tripData, id: editId };
         toast.success("Trip updated successfully!");
         navigate(createPageUrl("TripDetails", `id=${editId}`));
         return;
       } else {
-        resultTrip = await base44.entities.Trip.create(tripData);
+        resultTrip = await Trip.create(tripData);
         
         // Show success state only for new creation
         setCreatedTrip(resultTrip);
@@ -338,7 +345,7 @@ export default function PostTrip() {
 
         // Call intelligent matching algorithm (non-blocking)
         try {
-          await base44.functions.invoke('intelligentMatcher', {
+          await intelligentMatcher({
             newItemType: 'trip',
             newItemId: resultTrip.id
           });
@@ -376,7 +383,7 @@ export default function PostTrip() {
     ? (parseFloat(sanitizeWeight(formData.available_weight_kg)) * parseFloat(sanitizePrice(formData.price_per_kg))).toFixed(2)
     : 0;
 
-  if (isLoading) {
+  if (isLoading || userLoading) {
     return (
       <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
@@ -397,7 +404,7 @@ export default function PostTrip() {
             <AlertCircle className="w-16 h-16 mx-auto mb-4 text-yellow-400" />
             <h3 className="text-2xl font-bold text-white mb-2">Sign In Required</h3>
             <p className="text-gray-400 mb-6">You need to be signed in to post a trip</p>
-            <Button onClick={() => base44.auth.redirectToLogin()} className="bg-gradient-to-r from-[#9EFF00] to-[#7ACC00] hover:from-[#7ACC00] hover:to-[#9EFF00] text-[#1A1A1A]">
+            <Button onClick={navigateToLogin} className="bg-gradient-to-r from-[#9EFF00] to-[#7ACC00] hover:from-[#7ACC00] hover:to-[#9EFF00] text-[#1A1A1A]">
               Sign In
             </Button>
           </Card>

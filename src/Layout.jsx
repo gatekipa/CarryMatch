@@ -27,6 +27,7 @@ import { checkAndFlagUsers, updateTrustScores } from "@/components/AutoFlagSyste
 import WelcomeOnboarding from "@/components/WelcomeOnboarding";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import OfflineDetector from "@/components/OfflineDetector";
+import { useAuth } from "@/lib/AuthContext";
 import { usePermissions } from "@/components/permissions/usePermissions";
 import AIChatbot from "@/components/chatbot/AIChatbot";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -36,8 +37,12 @@ import { AnimatePresence, motion } from "framer-motion";
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
-  const [user, setUser] = React.useState(null);
+  const { user: authContextUser } = useAuth();
+  const [legacyLayoutUser, setLegacyLayoutUser] = React.useState(null);
+  const user = authContextUser ?? legacyLayoutUser;
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+
+  // Theme / UI shell behavior
   const [theme, setTheme] = React.useState(() => {
     const stored = localStorage.getItem('carrymatch-theme');
     if (stored) return stored;
@@ -52,6 +57,8 @@ export default function Layout({ children, currentPageName }) {
 
   const permissions = usePermissions(user);
 
+  // Legacy Base44 runtime compatibility: favicon/manifest assets and
+  // service-worker bootstrap remain unchanged here during containment.
   React.useEffect(() => {
     // Remove any existing favicons
     const existingFavicons = document.querySelectorAll("link[rel*='icon']");
@@ -209,15 +216,36 @@ export default function Layout({ children, currentPageName }) {
     setTheme(prevTheme => prevTheme === 'dark' ? 'light' : 'dark');
   };
 
-  React.useEffect(() => {
+  // Auth / session-dependent behavior
+  // Prefer AuthContext-owned user state, but keep the direct Base44 lookup
+  // as a temporary fallback until Layout can rely fully on AuthContext.
+  const resolveLegacyLayoutSession = async () => {
     const authPromise = base44.auth.me();
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error('Auth timeout')), 10000)
     );
-    Promise.race([authPromise, timeoutPromise])
-      .then(setUser)
-      .catch(() => setUser(null));
+
+    return Promise.race([authPromise, timeoutPromise]);
+  };
+
+  const bootstrapLegacyLayoutSession = async () => {
+    try {
+      const currentUser = await resolveLegacyLayoutSession();
+      setLegacyLayoutUser(currentUser);
+    } catch {
+      setLegacyLayoutUser(null);
+    }
+  };
+
+  React.useEffect(() => {
+    bootstrapLegacyLayoutSession();
   }, []);
+
+  React.useEffect(() => {
+    if (authContextUser) {
+      setLegacyLayoutUser(null);
+    }
+  }, [authContextUser]);
 
   // Run auto-flag system periodically
   React.useEffect(() => {
@@ -254,61 +282,67 @@ export default function Layout({ children, currentPageName }) {
     };
   }, []);
 
+  // Session-dependent data loading
+  // Future migration seam: these should move behind app-owned service layers.
+  const loadUnreadMessageCount = async () => {
+    if (!user) return 0;
+
+    const conv1 = await base44.entities.Conversation.filter({
+      participant_1_email: user.email
+    });
+
+    const conv2 = await base44.entities.Conversation.filter({
+      participant_2_email: user.email
+    });
+
+    return [...conv1, ...conv2].reduce((sum, conv) => {
+      return sum + (conv.participant_1_email === user.email
+        ? conv.unread_count_participant_1
+        : conv.unread_count_participant_2);
+    }, 0);
+  };
+
   // Get unread message count
   const { data: unreadMessageCount = 0 } = useQuery({
     queryKey: ['unread-messages', user?.email],
-    queryFn: async () => {
-      if (!user) return 0;
-
-      const conv1 = await base44.entities.Conversation.filter({
-        participant_1_email: user.email
-      });
-
-      const conv2 = await base44.entities.Conversation.filter({
-        participant_2_email: user.email
-      });
-
-      const totalUnread = [...conv1, ...conv2].reduce((sum, conv) => {
-        return sum + (conv.participant_1_email === user.email
-          ? conv.unread_count_participant_1
-          : conv.unread_count_participant_2);
-      }, 0);
-
-      return totalUnread;
-    },
+    queryFn: loadUnreadMessageCount,
     enabled: !!user,
     refetchInterval: 30000,
     staleTime: 20000
   });
+
+  const loadUnreadNotificationCount = async () => {
+    if (!user) return 0;
+    const notifications = await base44.entities.Notification.filter({
+      user_email: user.email,
+      is_read: false
+    });
+    return notifications.length;
+  };
 
   // Get unread notification count
   const { data: unreadNotificationCount = 0 } = useQuery({
     queryKey: ['unread-notifications', user?.email],
-    queryFn: async () => {
-      if (!user) return 0;
-      const notifications = await base44.entities.Notification.filter({
-        user_email: user.email,
-        is_read: false
-      });
-      return notifications.length;
-    },
+    queryFn: loadUnreadNotificationCount,
     enabled: !!user,
     refetchInterval: 30000,
     staleTime: 20000
   });
 
+  const loadIsVendorStaff = async () => {
+    if (!user) return false;
+    try {
+      const staff = await base44.entities.VendorStaff.filter({ email: user.email });
+      return staff.length > 0;
+    } catch (e) {
+      return false;
+    }
+  };
+
   // Check if user is vendor staff
   const { data: isVendorStaff = false } = useQuery({
     queryKey: ['is-vendor-staff', user?.email],
-    queryFn: async () => {
-      if (!user) return false;
-      try {
-        const staff = await base44.entities.VendorStaff.filter({ email: user.email });
-        return staff.length > 0;
-      } catch (e) {
-        return false;
-      }
-    },
+    queryFn: loadIsVendorStaff,
     enabled: !!user,
     staleTime: 10 * 60 * 1000
   });

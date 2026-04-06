@@ -1,11 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { OperatorStaff } from "@/api/entities";
 
 export function useBusVendorPermissions(user, operator) {
   const { data: staffRecord } = useQuery({
     queryKey: ['bus-staff-permissions', user?.email, operator?.id],
     queryFn: async () => {
       if (!user || !operator) return null;
+
+      // The hook already receives auth-derived state from callers.
+      // Future migration seam: keep this hook reading user/session data
+      // from auth/context consumers and entity data from app-owned services.
       
       // Check if user is the operator owner
       if (operator.created_by === user.email) {
@@ -18,7 +22,7 @@ export function useBusVendorPermissions(user, operator) {
       }
 
       // Check if user is staff
-      const staff = await base44.entities.OperatorStaff.filter({
+      const staff = await OperatorStaff.filter({
         operator_id: operator.id,
         user_id: user.email,
         status: "active"

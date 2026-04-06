@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
+import { GroupConversation, GroupMessage, Notification } from "@/api/entities";
+import { UploadFile } from "@/api/integrations";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +25,16 @@ import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { toast } from "sonner";
 
+const uploadGroupChatAttachment = async (file) => {
+  if (typeof UploadFile === "function") {
+    return UploadFile({ file });
+  }
+
+  // Legacy Base44 compatibility: fall back to the direct SDK upload
+  // surface until src/api/integrations.js is the sole upload entrypoint.
+  return base44.integrations.Core.UploadFile({ file });
+};
+
 export default function GroupChatWindow({ groupConversation, currentUser, onBack }) {
   const [messageText, setMessageText] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
@@ -32,9 +44,11 @@ export default function GroupChatWindow({ groupConversation, currentUser, onBack
   const isMarkingRef = useRef(false);
   const queryClient = useQueryClient();
 
+  // Future migration seam: this component should eventually rely only on
+  // app-owned entity and server/API services for group chat state and uploads.
   const { data: messages = [], refetch: refetchMessages } = useQuery({
     queryKey: ['group-messages', groupConversation.id],
-    queryFn: () => base44.entities.GroupMessage.filter({
+    queryFn: () => GroupMessage.filter({
       group_conversation_id: groupConversation.id
     }, "created_date"),
     refetchInterval: 3000,
@@ -63,14 +77,14 @@ export default function GroupChatWindow({ groupConversation, currentUser, onBack
         await Promise.all(
           unreadMessages.map(message => {
             const updatedReadBy = [...(message.read_by || []), currentUser.email];
-            return base44.entities.GroupMessage.update(message.id, {
+            return GroupMessage.update(message.id, {
               read_by: updatedReadBy
             });
           })
         );
 
         // Fetch fresh conversation to avoid overwriting concurrent changes
-        const freshConversations = await base44.entities.GroupConversation.filter({ id: groupConversation.id });
+        const freshConversations = await GroupConversation.filter({ id: groupConversation.id });
         const freshConversation = freshConversations[0];
         const freshParticipants = freshConversation?.participants || participants;
 
@@ -80,7 +94,7 @@ export default function GroupChatWindow({ groupConversation, currentUser, onBack
             : p
         );
 
-        await base44.entities.GroupConversation.update(groupConversation.id, {
+        await GroupConversation.update(groupConversation.id, {
           participants: updatedParticipants
         });
 
@@ -100,12 +114,12 @@ export default function GroupChatWindow({ groupConversation, currentUser, onBack
   const uploadFileMutation = useMutation({
     mutationFn: async (file) => {
       setIsUploading(true);
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await uploadGroupChatAttachment(file);
       return file_url;
     },
     onSuccess: (fileUrl) => {
       sendMessageMutation.mutate({
-        content: messageText.trim() || "📎 Attachment",
+        content: messageText.trim() || "\u{1F4CE} Attachment",
         attachment_url: fileUrl,
         attachment_type: selectedFile.type,
         attachment_name: selectedFile.name,
@@ -123,7 +137,7 @@ export default function GroupChatWindow({ groupConversation, currentUser, onBack
 
   const sendMessageMutation = useMutation({
     mutationFn: async (messageData) => {
-      const newMessage = await base44.entities.GroupMessage.create({
+      const newMessage = await GroupMessage.create({
         group_conversation_id: groupConversation.id,
         sender_email: currentUser.email,
         sender_name: currentUser.full_name || currentUser.email,
@@ -136,7 +150,7 @@ export default function GroupChatWindow({ groupConversation, currentUser, onBack
       });
 
       const lastMessagePreview = messageData.attachment_url 
-        ? (messageData.message_type === 'image' ? '📷 Photo' : '📎 File')
+        ? (messageData.message_type === 'image' ? '\u{1F4F7} Photo' : '\u{1F4CE} File')
         : (messageData.content || messageText.trim()).substring(0, 100);
 
       const updatedParticipants = participants.map(p => 
@@ -145,7 +159,7 @@ export default function GroupChatWindow({ groupConversation, currentUser, onBack
           : { ...p, unread_count: (p.unread_count || 0) + 1 }
       );
 
-      await base44.entities.GroupConversation.update(groupConversation.id, {
+      await GroupConversation.update(groupConversation.id, {
         last_message: lastMessagePreview,
         last_message_time: new Date().toISOString(),
         participants: updatedParticipants
@@ -154,10 +168,10 @@ export default function GroupChatWindow({ groupConversation, currentUser, onBack
       // Notify other participants (non-blocking)
       const otherParticipants = participants.filter(p => p.email !== currentUser.email);
       Promise.all(otherParticipants.map(participant =>
-        base44.entities.Notification.create({
+        Notification.create({
           user_email: participant.email,
           type: "message",
-          title: `💬 New Group Message`,
+          title: `\u{1F4AC} New Group Message`,
           message: `${currentUser.full_name || currentUser.email}: ${lastMessagePreview}`,
           link_url: createPageUrl("Messages"),
           priority: "normal"
@@ -308,7 +322,7 @@ export default function GroupChatWindow({ groupConversation, currentUser, onBack
                         </a>
                       )}
 
-                      {message.content && message.content !== "📎 Attachment" && (
+                      {message.content && message.content !== "\u{1F4CE} Attachment" && (
                         <p className="break-words">{message.content}</p>
                       )}
                     </div>

@@ -13,58 +13,81 @@ export const AuthProvider = ({ children }) => {
   const [appPublicSettings, setAppPublicSettings] = useState(null);
 
   useEffect(() => {
-    checkAppState();
+    bootstrapAuthState();
   }, []);
+
+  const clearAuthenticatedUser = () => {
+    setUser(null);
+    setIsAuthenticated(false);
+  };
+
+  const setAuthenticatedUser = (currentUser) => {
+    setUser(currentUser);
+    setIsAuthenticated(true);
+  };
+
+  const setUserNotRegisteredError = () => {
+    setAuthError({
+      type: 'user_not_registered',
+      message: 'User not registered for this app'
+    });
+  };
+
+  const checkCurrentUserSession = async () => {
+    // Legacy Base44 auth compatibility: current session resolution still
+    // comes from the Base44 SDK until auth ownership moves to Supabase.
+    const authPromise = base44.auth.me();
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Auth check timed out')), 10000)
+    );
+
+    return Promise.race([authPromise, timeoutPromise]);
+  };
+
+  const handleCurrentUserError = (error) => {
+    console.warn('User auth check failed (user not logged in):', error?.message);
+    clearAuthenticatedUser();
+
+    // DON'T set authError for auth_required - just means user isn't logged in
+    // Only block for user_not_registered
+    if (error?.status === 403 && error?.data?.extra_data?.reason === 'user_not_registered') {
+      setUserNotRegisteredError();
+    }
+  };
 
   const checkAppState = async () => {
     try {
       setAuthError(null);
       setIsLoadingAuth(true);
 
-      // Try to check if user is authenticated
       if (appParams.token) {
         try {
-          // Add timeout to prevent infinite loading
-          const authPromise = base44.auth.me();
-          const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Auth check timed out')), 10000)
-          );
-          const currentUser = await Promise.race([authPromise, timeoutPromise]);
-          setUser(currentUser);
-          setIsAuthenticated(true);
+          const currentUser = await checkCurrentUserSession();
+          setAuthenticatedUser(currentUser);
         } catch (error) {
-          console.warn('User auth check failed (user not logged in):', error?.message);
-          setUser(null);
-          setIsAuthenticated(false);
-          // DON'T set authError for auth_required — just means user isn't logged in
-          // Only block for user_not_registered
-          if (error?.status === 403 && error?.data?.extra_data?.reason === 'user_not_registered') {
-            setAuthError({
-              type: 'user_not_registered',
-              message: 'User not registered for this app'
-            });
-          }
+          handleCurrentUserError(error);
         }
       } else {
-        // No token — user is simply not logged in. That's fine.
-        setUser(null);
-        setIsAuthenticated(false);
+        // No token - user is simply not logged in. That's fine.
+        clearAuthenticatedUser();
       }
     } catch (error) {
       console.error('Unexpected auth error:', error);
-      setUser(null);
-      setIsAuthenticated(false);
+      clearAuthenticatedUser();
     } finally {
       setIsLoadingAuth(false);
       setIsLoadingPublicSettings(false);
     }
   };
 
-  const logout = (shouldRedirect = true) => {
-    setUser(null);
-    setIsAuthenticated(false);
+  const bootstrapAuthState = () => {
+    // Future migration seam: make this provider the single auth owner
+    // backed by Supabase session state instead of Base44 bootstrap params.
+    checkAppState();
+  };
 
-    // Clear cached user data from localStorage
+  const clearCachedUserData = () => {
+    // Preserve current logout cache-clearing behavior exactly.
     try {
       const keysToRemove = [];
       for (let i = 0; i < localStorage.length; i++) {
@@ -82,6 +105,11 @@ export const AuthProvider = ({ children }) => {
     } catch (e) {
       // localStorage may be unavailable
     }
+  };
+
+  const logout = (shouldRedirect = true) => {
+    clearAuthenticatedUser();
+    clearCachedUserData();
 
     if (shouldRedirect) {
       base44.auth.logout(window.location.href);
@@ -91,21 +119,24 @@ export const AuthProvider = ({ children }) => {
   };
 
   const navigateToLogin = () => {
+    // Legacy Base44 auth compatibility: callers still rely on the SDK login redirect.
     base44.auth.redirectToLogin(window.location.href);
   };
 
+  const authContextValue = {
+    user,
+    isAuthenticated,
+    isLoadingAuth,
+    isLoadingPublicSettings,
+    authError,
+    appPublicSettings,
+    logout,
+    navigateToLogin,
+    checkAppState
+  };
+
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      isAuthenticated, 
-      isLoadingAuth,
-      isLoadingPublicSettings,
-      authError,
-      appPublicSettings,
-      logout,
-      navigateToLogin,
-      checkAppState
-    }}>
+    <AuthContext.Provider value={authContextValue}>
       {children}
     </AuthContext.Provider>
   );

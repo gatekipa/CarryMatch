@@ -1,23 +1,69 @@
+import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/lib/AuthContext';
 
+const resolveLegacyAuthFallback = async () => {
+    // Legacy Base44 compatibility: keep a direct auth lookup fallback so
+    // the admin note behavior matches current runtime expectations.
+    try {
+        const user = await base44.auth.me();
+        return { user, isAuthenticated: true };
+    } catch (error) {
+        return { user: null, isAuthenticated: false };
+    }
+};
 
 export default function PageNotFound({}) {
     const location = useLocation();
     const pageName = location.pathname.substring(1);
-
-    const { data: authData, isFetched } = useQuery({
-        queryKey: ['user'],
-        queryFn: async () => {
-            try {
-                const user = await base44.auth.me();
-                return { user, isAuthenticated: true };
-            } catch (error) {
-                return { user: null, isAuthenticated: false };
-            }
-        }
+    const { user: authUser, isAuthenticated, isLoadingAuth } = useAuth();
+    const [authData, setAuthData] = useState({
+        user: authUser ?? null,
+        isAuthenticated: !!authUser && isAuthenticated,
     });
+    const [isFetched, setIsFetched] = useState(false);
+    const hasResolvedFallback = useRef(false);
+
+    useEffect(() => {
+        let isActive = true;
+
+        const resolveAuthState = async () => {
+            if (isLoadingAuth) {
+                return;
+            }
+
+            if (authUser && isAuthenticated) {
+                hasResolvedFallback.current = true;
+                setAuthData({ user: authUser, isAuthenticated: true });
+                setIsFetched(true);
+                return;
+            }
+
+            if (hasResolvedFallback.current) {
+                setAuthData({ user: null, isAuthenticated: false });
+                setIsFetched(true);
+                return;
+            }
+
+            // Future migration seam: once AuthContext fully owns auth/session
+            // resolution, this fallback should be removed.
+            const fallbackAuthData = await resolveLegacyAuthFallback();
+            if (!isActive) {
+                return;
+            }
+
+            hasResolvedFallback.current = true;
+            setAuthData(fallbackAuthData);
+            setIsFetched(true);
+        };
+
+        resolveAuthState();
+
+        return () => {
+            isActive = false;
+        };
+    }, [authUser, isAuthenticated, isLoadingAuth]);
     
     return (
         <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50">

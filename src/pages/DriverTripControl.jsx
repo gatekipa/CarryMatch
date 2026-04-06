@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { BusOperator, Trip } from "@/api/entities";
+import { sendTripNotification, updateBusLocation } from "@/api/functions";
+import { useCurrentUser } from "@/components/hooks/useCurrentUser";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,21 +15,29 @@ import { Bus, MapPin, Navigation, Send, AlertTriangle, CheckCircle, Coffee, Cloc
 import { format } from "date-fns";
 import { toast } from "sonner";
 
+const getLegacyBusRouteEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.BusRoute;
+};
+
+const getLegacyBusLocationUpdateEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.BusLocationUpdate;
+};
+
 export default function DriverTripControl() {
   const urlParams = new URLSearchParams(window.location.search);
   const tripId = urlParams.get("id");
   const queryClient = useQueryClient();
+  const { user } = useCurrentUser();
   
-  const [user, setUser] = useState(null);
   const [gpsEnabled, setGpsEnabled] = useState(false);
   const [currentPosition, setCurrentPosition] = useState(null);
   const [updateType, setUpdateType] = useState("departed");
   const [customMessage, setCustomMessage] = useState("");
   const [delayMinutes, setDelayMinutes] = useState("");
-
-  useEffect(() => {
-    base44.auth.me().then(setUser).catch(() => setUser(null));
-  }, []);
 
   // Request GPS permission and start tracking
   useEffect(() => {
@@ -67,7 +78,7 @@ export default function DriverTripControl() {
 
     const interval = setInterval(async () => {
       try {
-        await base44.functions.invoke('updateBusLocation', {
+        await updateBusLocation({
           trip_id: tripId,
           latitude: currentPosition.latitude,
           longitude: currentPosition.longitude,
@@ -86,7 +97,7 @@ export default function DriverTripControl() {
   const { data: trip } = useQuery({
     queryKey: ['driver-trip', tripId],
     queryFn: async () => {
-      const trips = await base44.entities.Trip.filter({ id: tripId });
+      const trips = await Trip.filter({ id: tripId });
       return trips[0];
     },
     enabled: !!tripId
@@ -95,7 +106,7 @@ export default function DriverTripControl() {
   const { data: route } = useQuery({
     queryKey: ['driver-route', trip?.route_id],
     queryFn: async () => {
-      const routes = await base44.entities.BusRoute.filter({ id: trip.route_id });
+      const routes = await getLegacyBusRouteEntity().filter({ id: trip.route_id });
       return routes[0];
     },
     enabled: !!trip
@@ -104,7 +115,7 @@ export default function DriverTripControl() {
   const { data: operator } = useQuery({
     queryKey: ['driver-operator', trip?.operator_id],
     queryFn: async () => {
-      const ops = await base44.entities.BusOperator.filter({ id: trip.operator_id });
+      const ops = await BusOperator.filter({ id: trip.operator_id });
       return ops[0];
     },
     enabled: !!trip
@@ -113,7 +124,7 @@ export default function DriverTripControl() {
   const { data: latestLocation } = useQuery({
     queryKey: ['latest-location', tripId],
     queryFn: async () => {
-      const locs = await base44.entities.BusLocationUpdate.filter({ trip_id: tripId }, "-created_date", 1);
+      const locs = await getLegacyBusLocationUpdateEntity().filter({ trip_id: tripId }, "-created_date", 1);
       return locs[0];
     },
     enabled: !!tripId,
@@ -122,7 +133,7 @@ export default function DriverTripControl() {
 
   const updateLocationMutation = useMutation({
     mutationFn: async () => {
-      return await base44.functions.invoke('updateBusLocation', {
+      return await updateBusLocation({
         trip_id: tripId,
         latitude: currentPosition.latitude,
         longitude: currentPosition.longitude,
@@ -142,7 +153,7 @@ export default function DriverTripControl() {
 
   const sendNotificationMutation = useMutation({
     mutationFn: async (data) => {
-      return await base44.functions.invoke('sendTripNotification', {
+      return await sendTripNotification({
         trip_id: tripId,
         update_type: data.update_type,
         message: data.message || undefined,

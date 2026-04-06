@@ -4,7 +4,18 @@ import { Card } from "@/components/ui/card";
 import { Camera, Upload, X, Image as ImageIcon, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
+import { UploadFile } from "@/api/integrations";
 import { toast } from "sonner";
+
+const uploadImageFile = async (file) => {
+  if (typeof UploadFile === "function") {
+    return UploadFile({ file });
+  }
+
+  // Legacy Base44 compatibility: fall back to the direct SDK integration
+  // surface until src/api/integrations.js is the sole upload entrypoint.
+  return base44.integrations.Core.UploadFile({ file });
+};
 
 /**
  * Mobile-optimized image upload component
@@ -97,10 +108,9 @@ export default function MobileImageUpload({
           processedFile = await compressImage(file);
         }
 
-        // Upload to server
-        const { file_url } = await base44.integrations.Core.UploadFile({ 
-          file: processedFile 
-        });
+        // Future migration seam: uploads should eventually flow only through
+        // app-owned upload/API services behind src/api/integrations.js.
+        const { file_url } = await uploadImageFile(processedFile);
         
         newUrls.push(file_url);
       }
@@ -214,7 +224,7 @@ export default function MobileImageUpload({
 
       {/* Info Text */}
       <p className="text-xs text-gray-500 text-center">
-        {previews.length}/{maxImages} images • Images are automatically compressed for faster uploads
+        {previews.length}/{maxImages} images {"\u2022"} Images are automatically compressed for faster uploads
       </p>
     </div>
   );

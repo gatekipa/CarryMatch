@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { Vendor, VendorStaff } from "@/api/entities";
+import { suggestOptimalRoute } from "@/api/functions";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -30,24 +32,39 @@ import StatusTransition from "@/components/vendor/StatusTransition";
 import ShipmentMessaging from "@/components/shipment/ShipmentMessaging";
 import { useVendorPermissions } from "@/components/vendor/useVendorPermissions";
 import NotificationTrigger from "@/components/vendor/NotificationTrigger";
+import { useCurrentUser } from "@/components/hooks/useCurrentUser";
+
+const getLegacyShipmentEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.Shipment;
+};
+
+const getLegacyBranchEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.Branch;
+};
+
+const getLegacyInsuranceClaimEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.InsuranceClaim;
+};
 
 export default function VendorShipmentDetails() {
   const navigate = useNavigate();
   const urlParams = new URLSearchParams(window.location.search);
   const shipmentId = urlParams.get("id");
 
-  const [user, setUser] = useState(null);
+  const { user } = useCurrentUser();
   const [vendorStaff, setVendorStaff] = useState(null);
-
-  useEffect(() => {
-    base44.auth.me().then(setUser).catch(() => setUser(null));
-  }, []);
 
   const { data: vendorStaffData } = useQuery({
     queryKey: ['vendor-staff-me', user?.email],
     queryFn: async () => {
       if (!user) return null;
-      const staff = await base44.entities.VendorStaff.filter({ email: user.email, status: "ACTIVE" });
+      const staff = await VendorStaff.filter({ email: user.email, status: "ACTIVE" });
       return staff[0] || null;
     },
     enabled: !!user
@@ -60,7 +77,7 @@ export default function VendorShipmentDetails() {
   const { data: shipment, isLoading, refetch } = useQuery({
     queryKey: ['shipment-details', shipmentId],
     queryFn: async () => {
-      const shipments = await base44.entities.Shipment.filter({ id: shipmentId });
+      const shipments = await getLegacyShipmentEntity().filter({ id: shipmentId });
       return shipments[0] || null;
     },
     enabled: !!shipmentId,
@@ -71,7 +88,7 @@ export default function VendorShipmentDetails() {
     queryKey: ['vendor', shipment?.vendor_id],
     queryFn: async () => {
       if (!shipment) return null;
-      const vendors = await base44.entities.Vendor.filter({ id: shipment.vendor_id });
+      const vendors = await Vendor.filter({ id: shipment.vendor_id });
       return vendors[0] || null;
     },
     enabled: !!shipment
@@ -81,7 +98,7 @@ export default function VendorShipmentDetails() {
     queryKey: ['branch', shipment?.branch_id],
     queryFn: async () => {
       if (!shipment) return null;
-      const branches = await base44.entities.Branch.filter({ id: shipment.branch_id });
+      const branches = await getLegacyBranchEntity().filter({ id: shipment.branch_id });
       return branches[0] || null;
     },
     enabled: !!shipment
@@ -91,7 +108,7 @@ export default function VendorShipmentDetails() {
     queryKey: ['insurance-claim', shipment?.id],
     queryFn: async () => {
       if (!shipment?.insurance_enabled) return null;
-      const claims = await base44.entities.InsuranceClaim.filter({ shipment_id: shipment.id });
+      const claims = await getLegacyInsuranceClaimEntity().filter({ shipment_id: shipment.id });
       return claims[0] || null;
     },
     enabled: !!shipment
@@ -100,7 +117,7 @@ export default function VendorShipmentDetails() {
   const { data: optimizedRoute } = useQuery({
     queryKey: ['optimized-route', shipment?.id],
     queryFn: async () => {
-      const response = await base44.functions.invoke('suggestOptimalRoute', {
+      const response = await suggestOptimalRoute({
         shipment_id: shipment.id
       });
       return response.data;

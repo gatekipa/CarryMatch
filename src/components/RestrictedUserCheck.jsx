@@ -1,31 +1,69 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Shield } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
+
+const resolveLegacyRestrictedUserFallback = async () => {
+  // Legacy Base44 compatibility: keep a direct auth lookup fallback so
+  // restricted-user detection matches current runtime behavior.
+  try {
+    return await base44.auth.me();
+  } catch {
+    return null;
+  }
+};
 
 export default function RestrictedUserCheck({ children }) {
-  const [user, setUser] = useState(null);
-  const [isRestricted, setIsRestricted] = useState(false);
+  const { user: authUser, isAuthenticated, isLoadingAuth, logout } = useAuth();
+  const [user, setUser] = useState(authUser ?? null);
+  const [isRestricted, setIsRestricted] = useState(!!authUser?.is_restricted);
   const [loading, setLoading] = useState(true);
+  const hasResolvedFallback = useRef(false);
 
   useEffect(() => {
-    const checkRestriction = async () => {
-      try {
-        const currentUser = await base44.auth.me();
-        setUser(currentUser);
-        
-        if (currentUser.is_restricted) {
-          setIsRestricted(true);
-        }
-      } catch (error) {
-        // Not logged in or error
+    let isActive = true;
+
+    const resolveRestrictionState = async () => {
+      if (isLoadingAuth) {
+        return;
       }
+
+      if (authUser && isAuthenticated) {
+        hasResolvedFallback.current = true;
+        setUser(authUser);
+        setIsRestricted(!!authUser.is_restricted);
+        setLoading(false);
+        return;
+      }
+
+      if (hasResolvedFallback.current) {
+        setUser(null);
+        setIsRestricted(false);
+        setLoading(false);
+        return;
+      }
+
+      // Future migration seam: once this guard can rely entirely on
+      // AuthContext plus app-owned services, remove the legacy fallback.
+      const fallbackUser = await resolveLegacyRestrictedUserFallback();
+      if (!isActive) {
+        return;
+      }
+
+      hasResolvedFallback.current = true;
+      setUser(fallbackUser);
+      setIsRestricted(!!fallbackUser?.is_restricted);
       setLoading(false);
     };
 
-    checkRestriction();
-  }, []);
+    resolveRestrictionState();
+
+    return () => {
+      isActive = false;
+    };
+  }, [authUser, isAuthenticated, isLoadingAuth]);
 
   if (loading) {
     return children;
@@ -55,7 +93,7 @@ export default function RestrictedUserCheck({ children }) {
             </a>
           </p>
           <Button
-            onClick={() => base44.auth.logout()}
+            onClick={() => logout(false)}
             variant="outline"
             className="border-white/10 text-gray-300 hover:text-white"
           >

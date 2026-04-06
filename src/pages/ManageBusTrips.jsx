@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { Trip } from "@/api/entities";
+import { bulkCreateTrips, cloneTrip, rebalanceSeats, sendCancelNotice, toggleEmergencyMode } from "@/api/functions";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useCurrentUser } from "@/components/hooks/useCurrentUser";
@@ -25,6 +27,54 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
 import SeatSelector from "../components/bus/SeatSelector";
+
+const getLegacyBusRouteEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.BusRoute;
+};
+
+const getLegacyVehicleEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.Vehicle;
+};
+
+const getLegacyOperatorBranchEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.OperatorBranch;
+};
+
+const getLegacySeatMapTemplateEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.SeatMapTemplate;
+};
+
+const getLegacyDriverEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.Driver;
+};
+
+const getLegacyRouteTemplateEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.RouteTemplate;
+};
+
+const getLegacyTripSeatInventoryEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.TripSeatInventory;
+};
+
+const getLegacyOrderEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.Order;
+};
 
 export default function ManageBusTrips() {
   const navigate = useNavigate();
@@ -89,7 +139,7 @@ export default function ManageBusTrips() {
 
   const { data: trips = [], isLoading, error: tripsError, refetch: refetchTrips } = useQuery({
     queryKey: ['trips', operator?.id],
-    queryFn: () => base44.entities.Trip.filter({ operator_id: operator.id }, "-departure_datetime"),
+    queryFn: () => Trip.filter({ operator_id: operator.id }, "-departure_datetime"),
     enabled: !!operator,
     refetchInterval: 60000,
     retry: 2
@@ -97,42 +147,42 @@ export default function ManageBusTrips() {
 
   const { data: routes = [] } = useQuery({
     queryKey: ['routes', operator?.id],
-    queryFn: () => base44.entities.BusRoute.filter({ operator_id: operator.id }),
+    queryFn: () => getLegacyBusRouteEntity().filter({ operator_id: operator.id }),
     enabled: !!operator,
     staleTime: 10 * 60 * 1000
   });
 
   const { data: vehicles = [] } = useQuery({
     queryKey: ['vehicles-list', operator?.id],
-    queryFn: () => base44.entities.Vehicle.filter({ operator_id: operator.id }),
+    queryFn: () => getLegacyVehicleEntity().filter({ operator_id: operator.id }),
     enabled: !!operator,
     staleTime: 10 * 60 * 1000
   });
 
   const { data: branches = [] } = useQuery({
     queryKey: ['branches', operator?.id],
-    queryFn: () => base44.entities.OperatorBranch.filter({ operator_id: operator.id }),
+    queryFn: () => getLegacyOperatorBranchEntity().filter({ operator_id: operator.id }),
     enabled: !!operator,
     staleTime: 10 * 60 * 1000
   });
 
   const { data: seatMapTemplates = [] } = useQuery({
     queryKey: ['seat-templates-list', operator?.id],
-    queryFn: () => base44.entities.SeatMapTemplate.filter({ operator_id: operator.id }),
+    queryFn: () => getLegacySeatMapTemplateEntity().filter({ operator_id: operator.id }),
     enabled: !!operator,
     staleTime: 15 * 60 * 1000
   });
 
   const { data: drivers = [] } = useQuery({
     queryKey: ['trip-drivers', operator?.id],
-    queryFn: () => base44.entities.Driver.filter({ operator_id: operator.id, status: "active" }),
+    queryFn: () => getLegacyDriverEntity().filter({ operator_id: operator.id, status: "active" }),
     enabled: !!operator,
     staleTime: 5 * 60 * 1000
   });
 
   const { data: routeTemplates = [] } = useQuery({
     queryKey: ['route-templates', operator?.id],
-    queryFn: () => base44.entities.RouteTemplate.filter({ operator_id: operator.id, is_active: true }),
+    queryFn: () => getLegacyRouteTemplateEntity().filter({ operator_id: operator.id, is_active: true }),
     enabled: !!operator,
     staleTime: 10 * 60 * 1000
   });
@@ -143,7 +193,7 @@ export default function ManageBusTrips() {
         throw new Error("Missing required trip data");
       }
       // Create trip
-      const trip = await base44.entities.Trip.create({
+      const trip = await Trip.create({
         operator_id: operator.id,
         route_id: data.route_id,
         vehicle_id: data.vehicle_id,
@@ -201,7 +251,7 @@ export default function ManageBusTrips() {
       }
 
       // Bulk create seat inventory
-      await base44.entities.TripSeatInventory.bulkCreate(seatInventory);
+      await getLegacyTripSeatInventoryEntity().bulkCreate(seatInventory);
 
       return trip;
     },
@@ -221,31 +271,31 @@ export default function ManageBusTrips() {
     mutationFn: async ({ tripId, status, cancelReason }) => {
       if (status === 'canceled') {
         // Use server function which handles: status update + notification + seat release + audit
-        await base44.functions.invoke('sendCancelNotice', {
+        await sendCancelNotice({
           trip_id: tripId,
           cancel_reason: cancelReason || 'Canceled by operator'
         });
         
         // Also release held seats and cancel orders (not done by sendCancelNotice)
-        const seats = await base44.entities.TripSeatInventory.filter({ trip_id: tripId });
+        const seats = await getLegacyTripSeatInventoryEntity().filter({ trip_id: tripId });
         for (const seat of seats) {
           if (seat.seat_status === 'held') {
-            await base44.entities.TripSeatInventory.update(seat.id, {
+            await getLegacyTripSeatInventoryEntity().update(seat.id, {
               seat_status: 'canceled', held_until: null, held_by_order_id: null
             }).catch(e => console.error('Seat release failed:', e));
           }
         }
         
-        const orders = await base44.entities.Order.filter({ trip_id: tripId, order_status: 'paid' });
+        const orders = await getLegacyOrderEntity().filter({ trip_id: tripId, order_status: 'paid' });
         for (const order of orders) {
-          await base44.entities.Order.update(order.id, {
+          await getLegacyOrderEntity().update(order.id, {
             order_status: 'canceled',
             cancellation_reason: cancelReason || 'Trip canceled by operator',
             canceled_at: new Date().toISOString()
           }).catch(e => console.error('Order cancel failed:', e));
         }
       } else {
-        await base44.entities.Trip.update(tripId, { trip_status: status });
+        await Trip.update(tripId, { trip_status: status });
       }
     },
     onSuccess: () => {
@@ -256,7 +306,7 @@ export default function ManageBusTrips() {
 
   const cloneTripMutation = useMutation({
     mutationFn: async ({ tripId, dates }) => {
-      const response = await base44.functions.invoke('cloneTrip', {
+      const response = await cloneTrip({
         trip_id: tripId,
         new_dates: dates
       });
@@ -276,7 +326,7 @@ export default function ManageBusTrips() {
 
   const bulkCreateMutation = useMutation({
     mutationFn: async (data) => {
-      const response = await base44.functions.invoke('bulkCreateTrips', data);
+      const response = await bulkCreateTrips(data);
       return response.data;
     },
     onSuccess: (data) => {
@@ -293,7 +343,7 @@ export default function ManageBusTrips() {
 
   const rebalanceSeatsMutation = useMutation({
     mutationFn: async (tripId) => {
-      const response = await base44.functions.invoke('rebalanceSeats', {
+      const response = await rebalanceSeats({
         trip_id: tripId,
         triggered_by: 'admin',
         actor_user_id: user.email
@@ -311,7 +361,7 @@ export default function ManageBusTrips() {
 
   const toggleEmergencyMutation = useMutation({
     mutationFn: async ({ tripId, enable, reason }) => {
-      const response = await base44.functions.invoke('toggleEmergencyMode', {
+      const response = await toggleEmergencyMode({
         trip_id: tripId,
         enable: enable,
         reason: reason

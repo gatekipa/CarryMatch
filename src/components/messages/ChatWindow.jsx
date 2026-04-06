@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
+import { Conversation, Entities, Message, Notification, User as AuthUserAccess } from "@/api/entities";
+import { UploadFile } from "@/api/integrations";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +34,26 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 
+const getAuthUserAccess = () => {
+  if (AuthUserAccess && typeof AuthUserAccess.updateMe === "function") {
+    return AuthUserAccess;
+  }
+
+  // Legacy Base44 compatibility: fall back to the direct SDK auth
+  // surface until auth actions move behind app-owned auth services.
+  return base44.auth;
+};
+
+const uploadChatAttachment = async (file) => {
+  if (typeof UploadFile === "function") {
+    return UploadFile({ file });
+  }
+
+  // Legacy Base44 compatibility: fall back to the direct SDK upload
+  // surface until src/api/integrations.js is the sole upload entrypoint.
+  return base44.integrations.Core.UploadFile({ file });
+};
+
 export default function ChatWindow({ conversation, currentUser, onBack, onMessageSent }) {
   const [messageText, setMessageText] = useState("");
   const [isTyping, setIsTyping] = useState(false);
@@ -42,6 +64,8 @@ export default function ChatWindow({ conversation, currentUser, onBack, onMessag
   const queryClient = useQueryClient();
   const typingTimeoutRef = useRef(null);
   const lastSeenIntervalRef = useRef(null);
+  const userEntity = Entities.User;
+  const authUserAccess = getAuthUserAccess();
 
   const otherUser = conversation.participant_1_email === currentUser.email
     ? {
@@ -55,10 +79,13 @@ export default function ChatWindow({ conversation, currentUser, onBack, onMessag
 
   const isParticipant1 = conversation.participant_1_email === currentUser.email;
 
+  // Future migration seam: this component should eventually rely only on
+  // app-owned entity and server/API services for chat state and uploads.
+
   // Fetch messages
    const { data: messages = [], refetch: refetchMessages } = useQuery({
      queryKey: ['messages', conversation.id],
-     queryFn: () => base44.entities.Message.filter({
+     queryFn: () => Message.filter({
        conversation_id: conversation.id
      }, "created_date"),
      refetchInterval: 3000,
@@ -70,7 +97,7 @@ export default function ChatWindow({ conversation, currentUser, onBack, onMessag
    const { data: otherUserData } = useQuery({
      queryKey: ['user-status', otherUser.email],
      queryFn: async () => {
-       const users = await base44.entities.User.filter({ email: otherUser.email });
+       const users = await userEntity.filter({ email: otherUser.email });
        return users[0] || null;
      },
      refetchInterval: 15000,
@@ -85,13 +112,13 @@ export default function ChatWindow({ conversation, currentUser, onBack, onMessag
         const now = new Date().toISOString();
 
         // Update conversation
-        await base44.entities.Conversation.update(conversation.id, {
+        await Conversation.update(conversation.id, {
           [isParticipant1 ? 'participant_1_last_seen' : 'participant_2_last_seen']: now,
           [isParticipant1 ? 'participant_1_typing' : 'participant_2_typing']: false
         });
 
         // Update user
-        await base44.auth.updateMe({
+        await authUserAccess.updateMe({
           is_online: true,
           last_seen: now
         });
@@ -108,7 +135,7 @@ export default function ChatWindow({ conversation, currentUser, onBack, onMessag
         clearInterval(lastSeenIntervalRef.current);
       }
       // Mark offline on unmount
-      base44.auth.updateMe({ is_online: false }).catch(() => {});
+      authUserAccess.updateMe({ is_online: false }).catch(() => {});
     };
   }, [conversation.id, isParticipant1]);
 
@@ -124,14 +151,14 @@ export default function ChatWindow({ conversation, currentUser, onBack, onMessag
 
         await Promise.all(
           unreadMessages.map(message =>
-            base44.entities.Message.update(message.id, { 
+            Message.update(message.id, { 
               is_read: true,
               read_at: new Date().toISOString()
             })
           )
         );
 
-        await base44.entities.Conversation.update(conversation.id, {
+        await Conversation.update(conversation.id, {
           [isParticipant1 ? 'unread_count_participant_1' : 'unread_count_participant_2']: 0
         });
 
@@ -160,7 +187,7 @@ export default function ChatWindow({ conversation, currentUser, onBack, onMessag
 
     // Set typing to true
     try {
-      await base44.entities.Conversation.update(conversation.id, {
+      await Conversation.update(conversation.id, {
         [isParticipant1 ? 'participant_1_typing' : 'participant_2_typing']: true
       });
     } catch (error) {
@@ -169,7 +196,7 @@ export default function ChatWindow({ conversation, currentUser, onBack, onMessag
 
     typingTimeoutRef.current = setTimeout(async () => {
       try {
-        await base44.entities.Conversation.update(conversation.id, {
+        await Conversation.update(conversation.id, {
           [isParticipant1 ? 'participant_1_typing' : 'participant_2_typing']: false
         });
       } catch (error) {
@@ -209,7 +236,7 @@ export default function ChatWindow({ conversation, currentUser, onBack, onMessag
   const uploadFileMutation = useMutation({
     mutationFn: async (file) => {
       setIsUploading(true);
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await uploadChatAttachment(file);
       return file_url;
     },
     onSuccess: (fileUrl) => {
@@ -234,23 +261,23 @@ export default function ChatWindow({ conversation, currentUser, onBack, onMessag
   // Mark message as helpful mutation
   const markHelpfulMutation = useMutation({
     mutationFn: async (messageId) => {
-      await base44.entities.Message.update(messageId, {
+      await Message.update(messageId, {
         is_helpful: true,
         helpful_marked_at: new Date().toISOString()
       });
 
       const message = messages.find(m => m.id === messageId);
       if (message) {
-        const senderUsers = await base44.entities.User.filter({ email: message.sender_email });
+        const senderUsers = await userEntity.filter({ email: message.sender_email });
         if (senderUsers[0]) {
           const newHelpfulCount = (senderUsers[0].helpful_message_count || 0) + 1;
-          await base44.entities.User.update(senderUsers[0].id, {
+          await userEntity.update(senderUsers[0].id, {
             helpful_message_count: newHelpfulCount,
             messaging_points: (senderUsers[0].messaging_points || 0) + 2
           });
 
           if (newHelpfulCount === 50) {
-            await base44.entities.Notification.create({
+            await Notification.create({
               user_email: message.sender_email,
               type: "system",
               title: "🎉 New Badge Unlocked!",
@@ -270,7 +297,7 @@ export default function ChatWindow({ conversation, currentUser, onBack, onMessag
   // Send message mutation with optimistic update
   const sendMessageMutation = useMutation({
     mutationFn: async (messageData) => {
-      const newMessage = await base44.entities.Message.create({
+      const newMessage = await Message.create({
         conversation_id: conversation.id,
         sender_email: currentUser.email,
         sender_name: currentUser.full_name || currentUser.email,
@@ -292,7 +319,7 @@ export default function ChatWindow({ conversation, currentUser, onBack, onMessag
         ? (messageData.message_type === 'image' ? '📷 Photo' : '📎 File')
         : (messageData.content || messageText.trim()).substring(0, 100);
 
-      await base44.entities.Conversation.update(conversation.id, {
+      await Conversation.update(conversation.id, {
         last_message: lastMessagePreview,
         last_message_time: new Date().toISOString(),
         [otherUserUnreadKey]: (conversation[otherUserUnreadKey] || 0) + 1,
@@ -300,9 +327,9 @@ export default function ChatWindow({ conversation, currentUser, onBack, onMessag
       });
 
       // Update sender's message stats (batched)
-      const users = await base44.entities.User.filter({ email: currentUser.email });
+      const users = await userEntity.filter({ email: currentUser.email });
       if (users[0]) {
-        await base44.entities.User.update(users[0].id, {
+        await userEntity.update(users[0].id, {
           total_messages_sent: (users[0].total_messages_sent || 0) + 1,
           messaging_points: (users[0].messaging_points || 0) + 1,
           last_message_date: new Date().toISOString().split('T')[0]
@@ -310,7 +337,7 @@ export default function ChatWindow({ conversation, currentUser, onBack, onMessag
       }
 
       // Create notification (non-blocking)
-      base44.entities.Notification.create({
+      Notification.create({
         user_email: otherUser.email,
         type: "message",
         title: "💬 New Message",

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { Trip, TripStatusUpdate } from "@/api/entities";
+import { updateBusLocation } from "@/api/functions";
 
 export function useOfflineSync() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -45,11 +46,13 @@ export function useOfflineSync() {
     setIsSyncing(true);
     const synced = [];
 
+    // Future migration seam: this hook should eventually rely only on
+    // app-owned repository/entity and server/API services.
     for (const action of pendingSync) {
       try {
         if (action.type === 'status_update') {
-          await base44.entities.Trip.update(action.trip_id, { trip_status: action.status });
-          await base44.entities.TripStatusUpdate.create({
+          await Trip.update(action.trip_id, { trip_status: action.status });
+          await TripStatusUpdate.create({
             trip_id: action.trip_id,
             update_type: action.status === 'departed' ? 'departed' : 
                          action.status === 'delayed' ? 'delayed' : 
@@ -59,7 +62,7 @@ export function useOfflineSync() {
             notifications_sent: false
           });
         } else if (action.type === 'location_update') {
-          await base44.functions.invoke('updateBusLocation', {
+          await updateBusLocation({
             trip_id: action.trip_id,
             latitude: action.latitude,
             longitude: action.longitude,

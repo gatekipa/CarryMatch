@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { intelligentMatcher } from "@/api/functions";
 import { useNavigate, Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
@@ -20,20 +21,28 @@ import { useQueryClient } from "@tanstack/react-query";
 import { getAirportByIATA } from "../components/airports/airportsData";
 import { getMetroGroupByAirport, getAirportsInMetro, metroAirportGroups } from "../components/airports/MetroAirportGroups";
 import { toast } from "sonner";
+import { useCurrentUser } from "../components/hooks/useCurrentUser";
+import { useAuth } from "@/lib/AuthContext";
+
+const getLegacyShipmentRequestEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.ShipmentRequest;
+};
 
 export default function PostRequest() {
   const navigate = useNavigate();
   const urlParams = new URLSearchParams(window.location.search);
   const editId = urlParams.get("id");
   const queryClient = useQueryClient();
+  const { user, loading: userLoading } = useCurrentUser();
+  const { navigateToLogin } = useAuth();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
-  const [user, setUser] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [createdRequest, setCreatedRequest] = useState(null);
   const [isLoading, setIsLoading] = useState(!!editId);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [destinationFlexibility, setDestinationFlexibility] = useState("specific");
   const [selectedMetro, setSelectedMetro] = useState(null);
   const [selectedState, setSelectedState] = useState("");
@@ -45,36 +54,7 @@ export default function PostRequest() {
 
   const [profileIncomplete, setProfileIncomplete] = useState(false);
   const [missingFields, setMissingFields] = useState([]);
-
-  useEffect(() => {
-    base44.auth.me()
-      .then((currentUser) => {
-        setUser(currentUser);
-
-        // Check profile completeness
-        const missing = [];
-        if (!currentUser.full_name?.trim()) missing.push("Full name");
-        if (!currentUser.phone?.trim()) missing.push("Phone number");
-        if (!currentUser.profile_picture_url) missing.push("Profile picture");
-        if (!currentUser.location?.trim()) missing.push("Location (city & country)");
-
-        if (missing.length > 0 && !editId) {
-          setMissingFields(missing);
-          setProfileIncomplete(true);
-        }
-
-        // Auto-fill name/phone from profile for new requests
-        if (!editId) {
-          setFormData(prev => ({
-            ...prev,
-            requester_name: prev.requester_name || currentUser.full_name || "",
-            requester_phone: prev.requester_phone || currentUser.phone || ""
-          }));
-        }
-      })
-      .catch(() => setUser(null))
-      .finally(() => setIsAuthLoading(false));
-  }, []);
+  const hasInitializedProfileState = useRef(false);
 
   const [formData, setFormData] = useState({
     from_city: "",
@@ -101,10 +81,39 @@ export default function PostRequest() {
   });
 
   useEffect(() => {
+    if (userLoading || !user || hasInitializedProfileState.current) {
+      return;
+    }
+
+    hasInitializedProfileState.current = true;
+
+    // Check profile completeness
+    const missing = [];
+    if (!user.full_name?.trim()) missing.push("Full name");
+    if (!user.phone?.trim()) missing.push("Phone number");
+    if (!user.profile_picture_url) missing.push("Profile picture");
+    if (!user.location?.trim()) missing.push("Location (city & country)");
+
+    if (missing.length > 0 && !editId) {
+      setMissingFields(missing);
+      setProfileIncomplete(true);
+    }
+
+    // Auto-fill name/phone from profile for new requests
+    if (!editId) {
+      setFormData(prev => ({
+        ...prev,
+        requester_name: prev.requester_name || user.full_name || "",
+        requester_phone: prev.requester_phone || user.phone || ""
+      }));
+    }
+  }, [user, userLoading, editId]);
+
+  useEffect(() => {
     if (editId) {
       const fetchRequest = async () => {
         try {
-          const requests = await base44.entities.ShipmentRequest.filter({ id: editId });
+          const requests = await getLegacyShipmentRequestEntity().filter({ id: editId });
           if (requests.length > 0) {
             const req = requests[0];
             setFormData({
@@ -232,7 +241,7 @@ export default function PostRequest() {
     // Check if user is authenticated
     if (!user) {
       toast.error("Please sign in to post a request");
-      base44.auth.redirectToLogin();
+      navigateToLogin();
       return;
     }
 
@@ -361,7 +370,7 @@ export default function PostRequest() {
       let resultRequest;
       
       if (editId) {
-        await base44.entities.ShipmentRequest.update(editId, requestData);
+        await getLegacyShipmentRequestEntity().update(editId, requestData);
         resultRequest = { ...requestData, id: editId };
         toast.success("Request updated successfully!");
         // Invalidate query to force refetch
@@ -369,7 +378,7 @@ export default function PostRequest() {
         navigate(createPageUrl("RequestDetails", `id=${editId}`));
         return;
       } else {
-        resultRequest = await base44.entities.ShipmentRequest.create(requestData);
+        resultRequest = await getLegacyShipmentRequestEntity().create(requestData);
         
         // Show success state only for new creation
         setCreatedRequest(resultRequest);
@@ -377,7 +386,7 @@ export default function PostRequest() {
 
         // Call intelligent matching algorithm (non-blocking)
         try {
-          const matchResult = await base44.functions.invoke('intelligentMatcher', {
+          const matchResult = await intelligentMatcher({
             newItemType: 'request',
             newItemId: resultRequest.id
           });
@@ -455,7 +464,7 @@ export default function PostRequest() {
     );
   }
 
-  if (isLoading || isAuthLoading) {
+  if (isLoading || userLoading) {
     return (
       <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
@@ -477,7 +486,7 @@ export default function PostRequest() {
             <AlertCircle className="w-16 h-16 mx-auto mb-4 text-yellow-400" />
             <h3 className="text-2xl font-bold text-white mb-2">Sign In Required</h3>
             <p className="text-gray-400 mb-6">You need to be signed in to post a shipment request</p>
-            <Button onClick={() => base44.auth.redirectToLogin()} className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white">
+            <Button onClick={navigateToLogin} className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white">
               Sign In
             </Button>
           </Card>

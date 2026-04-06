@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
+import { BusOperator, Trip } from "@/api/entities";
+import { checkSeatAllocation } from "@/api/functions";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -13,6 +15,49 @@ import { CreditCard, Smartphone, Clock, CheckCircle, Ticket, AlertCircle } from 
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { useSalesWindowCheck } from "../components/bus/useSalesWindowCheck";
+import { useCurrentUser } from "../components/hooks/useCurrentUser";
+
+const getLegacyTripSeatInventoryEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.TripSeatInventory;
+};
+
+const getLegacyPromoCodeEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.PromoCode;
+};
+
+const getLegacyOrderEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.Order;
+};
+
+const getLegacyReferralCodeEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.ReferralCode;
+};
+
+const getLegacyOrderSeatEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.OrderSeat;
+};
+
+const getLegacyAuditLogEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.AuditLog;
+};
+
+const getLegacyTicketEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.Ticket;
+};
 
 export default function BusCheckout() {
   const navigate = useNavigate();
@@ -23,7 +68,7 @@ export default function BusCheckout() {
   const passengerName = decodeURIComponent(urlParams.get("name") || "");
   const passengerPhone = decodeURIComponent(urlParams.get("phone") || "");
   
-  const [user, setUser] = useState(null);
+  const { user } = useCurrentUser();
   const [paymentMethod, setPaymentMethod] = useState("momo");
   const [promoCode, setPromoCode] = useState("");
   const [appliedPromo, setAppliedPromo] = useState(null);
@@ -32,10 +77,6 @@ export default function BusCheckout() {
   const [timeRemaining, setTimeRemaining] = useState(15 * 60);
   const [isProcessing, setIsProcessing] = useState(false);
   const paymentCompletedRef = useRef(false);
-
-  useEffect(() => {
-    base44.auth.me().then(setUser).catch(() => setUser(null));
-  }, []);
 
   // Countdown timer
   useEffect(() => {
@@ -56,7 +97,7 @@ export default function BusCheckout() {
   const { data: trip } = useQuery({
     queryKey: ['checkout-trip', tripId],
     queryFn: async () => {
-      const trips = await base44.entities.Trip.filter({ id: tripId });
+      const trips = await Trip.filter({ id: tripId });
       return trips[0];
     },
     enabled: !!tripId
@@ -64,7 +105,7 @@ export default function BusCheckout() {
 
   const { data: seatInventory = [] } = useQuery({
     queryKey: ['checkout-seats', tripId],
-    queryFn: () => base44.entities.TripSeatInventory.filter({
+    queryFn: () => getLegacyTripSeatInventoryEntity().filter({
       trip_id: tripId,
       seat_code: { $in: seatCodes }
     }),
@@ -74,7 +115,7 @@ export default function BusCheckout() {
   const { data: operator } = useQuery({
     queryKey: ['checkout-operator', trip?.operator_id],
     queryFn: async () => {
-      const ops = await base44.entities.BusOperator.filter({ id: trip.operator_id });
+      const ops = await BusOperator.filter({ id: trip.operator_id });
       return ops[0];
     },
     enabled: !!trip
@@ -93,7 +134,7 @@ export default function BusCheckout() {
       if (seatInventory.length > 0 && user) {
         seatInventory.forEach(seat => {
           if (seat.seat_status === 'held' && seat.held_by_order_id === user.email) {
-            base44.entities.TripSeatInventory.update(seat.id, {
+            getLegacyTripSeatInventoryEntity().update(seat.id, {
               seat_status: 'available',
               held_until: null,
               held_by_order_id: null
@@ -106,7 +147,7 @@ export default function BusCheckout() {
 
   const applyPromoMutation = useMutation({
     mutationFn: async (code) => {
-      const promos = await base44.entities.PromoCode.filter({
+      const promos = await getLegacyPromoCodeEntity().filter({
         code: code.toUpperCase(),
         operator_id: trip.operator_id,
         is_active: true
@@ -138,7 +179,7 @@ export default function BusCheckout() {
 
       // Check per-user limit
       if (promo.usage_limit_per_user) {
-        const userOrders = await base44.entities.Order.filter({
+        const userOrders = await getLegacyOrderEntity().filter({
           user_id: user.email,
           operator_id: trip.operator_id
         });
@@ -164,7 +205,7 @@ export default function BusCheckout() {
 
   const applyReferralMutation = useMutation({
     mutationFn: async (code) => {
-      const referrals = await base44.entities.ReferralCode.filter({
+      const referrals = await getLegacyReferralCodeEntity().filter({
         code: code.toUpperCase(),
         operator_id: trip.operator_id,
         status: "active"
@@ -193,7 +234,7 @@ export default function BusCheckout() {
       }
 
       // Check seat allocation for online channel
-      const allocationCheck = await base44.functions.invoke('checkSeatAllocation', {
+      const allocationCheck = await checkSeatAllocation({
         trip_id: tripId,
         seat_codes: seatCodes,
         channel: 'online',
@@ -205,7 +246,7 @@ export default function BusCheckout() {
       }
 
       // Verify seats are still held by this user (fresh server-side check)
-      const freshSeats = await base44.entities.TripSeatInventory.filter({
+      const freshSeats = await getLegacyTripSeatInventoryEntity().filter({
         trip_id: tripId,
         seat_code: { $in: seatCodes }
       });
@@ -249,7 +290,7 @@ export default function BusCheckout() {
 
       const paymentRef = `MOCK_${Date.now()}${appliedPromo ? `:PROMO:${appliedPromo.code}` : ''}${appliedReferral ? `:REF:${appliedReferral.code}` : ''}`;
 
-      const order = await base44.entities.Order.create({
+      const order = await getLegacyOrderEntity().create({
         user_id: user.email,
         trip_id: tripId,
         operator_id: trip.operator_id,
@@ -266,7 +307,7 @@ export default function BusCheckout() {
       });
 
       // Create OrderSeats
-      await base44.entities.OrderSeat.bulkCreate(
+      await getLegacyOrderSeatEntity().bulkCreate(
         seatCodes.map(seatCode => {
           const seat = freshSeats.find(s => s.seat_code === seatCode);
           return {
@@ -280,14 +321,14 @@ export default function BusCheckout() {
 
       // Update seat inventory to sold (atomic conversion from held to sold)
       for (const seat of freshSeats) {
-        await base44.entities.TripSeatInventory.update(seat.id, {
+        await getLegacyTripSeatInventoryEntity().update(seat.id, {
           seat_status: 'sold_online',
           held_until: null,
           held_by_order_id: order.id
         });
         
         // Create audit log
-        await base44.entities.AuditLog.create({
+        await getLegacyAuditLogEntity().create({
           actor_user_id: user.email,
           operator_id: trip.operator_id,
           action_type: "seat_sold_online",
@@ -303,7 +344,7 @@ export default function BusCheckout() {
       }
 
       // Create tickets
-      const tickets = await base44.entities.Ticket.bulkCreate(
+      const tickets = await getLegacyTicketEntity().bulkCreate(
         seatCodes.map((seatCode, idx) => {
           const rand = Math.random().toString(36).substring(2, 5).toUpperCase();
           return {
@@ -317,12 +358,12 @@ export default function BusCheckout() {
 
       // Update promo usage
       if (appliedPromo) {
-        await base44.entities.PromoCode.update(appliedPromo.id, {
+        await getLegacyPromoCodeEntity().update(appliedPromo.id, {
           current_uses: appliedPromo.current_uses + 1
         });
 
         // Create audit log
-        await base44.entities.AuditLog.create({
+        await getLegacyAuditLogEntity().create({
           actor_user_id: user.email,
           operator_id: trip.operator_id,
           action_type: "promo_code_used",
@@ -338,7 +379,7 @@ export default function BusCheckout() {
 
       // Track referral usage
       if (appliedReferral) {
-        await base44.entities.AuditLog.create({
+        await getLegacyAuditLogEntity().create({
           actor_user_id: user.email,
           operator_id: trip.operator_id,
           action_type: "referral_code_used",
@@ -366,7 +407,7 @@ export default function BusCheckout() {
       // Release seats on payment failure
       seatInventory.forEach(seat => {
         if (seat.seat_status === 'held' && seat.held_by_order_id === user.email) {
-          base44.entities.TripSeatInventory.update(seat.id, {
+          getLegacyTripSeatInventoryEntity().update(seat.id, {
             seat_status: 'available',
             held_until: null,
             held_by_order_id: null

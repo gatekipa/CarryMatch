@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { Vendor, VendorStaff } from "@/api/entities";
 
 const LS_KEY = "carrymatch_vendor_staff";
 
@@ -7,9 +7,9 @@ const LS_KEY = "carrymatch_vendor_staff";
  * Robust hook to find the current user's VendorStaff record.
  *
  * Lookup order:
- *  1. localStorage — validate vendor_id is real before trusting it
- *  2. VendorStaff.list() → client-side email match
- *  3. Vendor.list() → find matching vendor → auto-create VendorStaff
+ *  1. localStorage â€” validate vendor_id is real before trusting it
+ *  2. VendorStaff.list() â†’ client-side email match
+ *  3. Vendor.list() â†’ find matching vendor â†’ auto-create VendorStaff
  */
 export function useVendorStaff(userEmail) {
   return useQuery({
@@ -17,6 +17,9 @@ export function useVendorStaff(userEmail) {
     queryFn: async () => {
       if (!userEmail) return null;
       const emailLower = userEmail.toLowerCase();
+
+      // Future migration seam: this hook should eventually rely only on
+      // app-owned repository/entity services behind src/api/entities.js.
 
       // ---- Step 1: localStorage + vendor validation ----
       try {
@@ -28,13 +31,13 @@ export function useVendorStaff(userEmail) {
             console.log("[useVendorStaff] Step 1: Found in localStorage, validating vendor_id:", parsed.vendor_id);
             // Validate the vendor_id actually exists
             try {
-              const vendors = await base44.entities.Vendor.filter({ id: parsed.vendor_id });
+              const vendors = await Vendor.filter({ id: parsed.vendor_id });
               if (vendors && vendors[0]) {
-                console.log("[useVendorStaff] ✅ Step 1: localStorage + vendor valid");
+                console.log("[useVendorStaff] âœ… Step 1: localStorage + vendor valid");
                 return parsed;
               }
             } catch {}
-            // Vendor doesn't exist or 500'd — stale cache, clear it
+            // Vendor doesn't exist or 500'd â€” stale cache, clear it
             console.warn("[useVendorStaff] Step 1: vendor_id invalid, clearing localStorage");
             localStorage.removeItem(LS_KEY);
           }
@@ -47,7 +50,7 @@ export function useVendorStaff(userEmail) {
       // ---- Step 2: VendorStaff.list() + client-side email match ----
       console.log("[useVendorStaff] Step 2: Calling VendorStaff.list() for", userEmail);
       try {
-        const allStaff = await base44.entities.VendorStaff.list();
+        const allStaff = await VendorStaff.list();
         console.log("[useVendorStaff] Step 2: .list() returned", allStaff?.length, "records");
 
         if (allStaff && allStaff.length > 0) {
@@ -58,11 +61,11 @@ export function useVendorStaff(userEmail) {
             allStaff.find(s => s.email?.toLowerCase() === emailLower);
 
           if (match) {
-            console.log("[useVendorStaff] ✅ Step 2: Found via .list(), id:", match.id, "vendor_id:", match.vendor_id);
+            console.log("[useVendorStaff] âœ… Step 2: Found via .list(), id:", match.id, "vendor_id:", match.vendor_id);
             // Validate this vendor_id too before caching
             let vendorValid = false;
             try {
-              const v = await base44.entities.Vendor.filter({ id: match.vendor_id });
+              const v = await Vendor.filter({ id: match.vendor_id });
               vendorValid = !!(v && v[0]);
             } catch {}
             if (vendorValid) {
@@ -80,10 +83,10 @@ export function useVendorStaff(userEmail) {
         console.warn("[useVendorStaff] Step 2: .list() failed:", e);
       }
 
-      // ---- Step 3: Vendor.list() → find vendor by email → auto-create VendorStaff ----
+      // ---- Step 3: Vendor.list() â†’ find vendor by email â†’ auto-create VendorStaff ----
       console.log("[useVendorStaff] Step 3: Trying Vendor.list() fallback");
       try {
-        const allVendors = await base44.entities.Vendor.list();
+        const allVendors = await Vendor.list();
         console.log("[useVendorStaff] Step 3: Vendor.list() returned", allVendors?.length, "records");
 
         if (allVendors && allVendors.length > 0) {
@@ -94,9 +97,9 @@ export function useVendorStaff(userEmail) {
           );
 
           if (vendor) {
-            console.log("[useVendorStaff] Step 3: Found Vendor", vendor.id, "— creating VendorStaff");
+            console.log("[useVendorStaff] Step 3: Found Vendor", vendor.id, "â€” creating VendorStaff");
             try {
-              const created = await base44.entities.VendorStaff.create({
+              const created = await VendorStaff.create({
                 vendor_id: vendor.id,
                 email: userEmail,
                 full_name: vendor.primary_contact_name || "Owner",
@@ -110,7 +113,7 @@ export function useVendorStaff(userEmail) {
                 role: "OWNER",
                 status: "ACTIVE"
               };
-              console.log("[useVendorStaff] ✅ Step 3: Created VendorStaff:", record.id || "(no id)");
+              console.log("[useVendorStaff] âœ… Step 3: Created VendorStaff:", record.id || "(no id)");
               try { localStorage.setItem(LS_KEY, JSON.stringify(record)); } catch {}
               return record;
             } catch (createErr) {
@@ -132,7 +135,7 @@ export function useVendorStaff(userEmail) {
         console.warn("[useVendorStaff] Step 3: Vendor.list() failed:", e);
       }
 
-      console.log("[useVendorStaff] ❌ No VendorStaff found for", userEmail);
+      console.log("[useVendorStaff] âŒ No VendorStaff found for", userEmail);
       return null;
     },
     enabled: !!userEmail,

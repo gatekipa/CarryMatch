@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { Trip } from "@/api/entities";
+import { checkSeatAllocation } from "@/api/functions";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,11 +21,63 @@ import AgentLockScreen from "../components/bus/AgentLockScreen";
 import AgentSessionBar from "../components/bus/AgentSessionBar";
 import StartSessionDialog from "../components/bus/StartSessionDialog";
 import { useAgentSession } from "../components/bus/useAgentSession";
+import { useCurrentUser } from "../components/hooks/useCurrentUser";
+import { useBusOperator } from "../components/hooks/useBusOperator";
+import { useAuth } from "@/lib/AuthContext";
+
+const getLegacyOperatorBranchEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.OperatorBranch;
+};
+
+const getLegacyBusRouteEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.BusRoute;
+};
+
+const getLegacyVehicleEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.Vehicle;
+};
+
+const getLegacySeatMapTemplateEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.SeatMapTemplate;
+};
+
+const getLegacyTripSeatInventoryEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.TripSeatInventory;
+};
+
+const getLegacyOfflineSaleEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.OfflineSale;
+};
+
+const getLegacyAuditLogEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.AuditLog;
+};
+
+const getLegacyPassengerProfileEntity = () => {
+  // Legacy Base44 entity compatibility: this collection is still accessed
+  // directly until src/api/entities.js exposes a stable named export for it.
+  return base44.entities.PassengerProfile;
+};
 
 export default function VendorOfflineSales() {
   const queryClient = useQueryClient();
-  const [user, setUser] = useState(null);
-  const [authChecked, setAuthChecked] = useState(false);
+  const { user, loading } = useCurrentUser();
+  const { navigateToLogin } = useAuth();
+  const { data: operator } = useBusOperator(user?.email);
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [selectedSeats, setSelectedSeats] = useState([]);
   const [passengerName, setPassengerName] = useState("");
@@ -36,19 +90,6 @@ export default function VendorOfflineSales() {
   const [selectedPassengerProfile, setSelectedPassengerProfile] = useState(null);
   const [savePassenger, setSavePassenger] = useState(true);
 
-  useEffect(() => {
-    base44.auth.me().then(u => { setUser(u); setAuthChecked(true); }).catch(() => { setUser(null); setAuthChecked(true); });
-  }, []);
-
-  const { data: operator } = useQuery({
-    queryKey: ['my-bus-operator', user?.email],
-    queryFn: async () => {
-      const ops = await base44.entities.BusOperator.filter({ created_by: user.email });
-      return ops[0];
-    },
-    enabled: !!user
-  });
-
   const permissions = useBusVendorPermissions(user, operator);
   const agentSession = useAgentSession(user, operator);
 
@@ -56,14 +97,14 @@ export default function VendorOfflineSales() {
 
   const { data: branches = [] } = useQuery({
     queryKey: ['branches-list', operator?.id],
-    queryFn: () => base44.entities.OperatorBranch.filter({ operator_id: operator.id }),
+    queryFn: () => getLegacyOperatorBranchEntity().filter({ operator_id: operator.id }),
     enabled: !!operator
   });
 
   const { data: upcomingTrips = [] } = useQuery({
     queryKey: ['upcoming-trips', operator?.id],
     queryFn: async () => {
-      const trips = await base44.entities.Trip.filter({
+      const trips = await Trip.filter({
         operator_id: operator.id,
         trip_status: { $in: ["scheduled", "boarding"] }
       }, "departure_datetime");
@@ -74,25 +115,25 @@ export default function VendorOfflineSales() {
 
   const { data: routes = [] } = useQuery({
     queryKey: ['offline-routes', operator?.id],
-    queryFn: () => base44.entities.BusRoute.filter({ operator_id: operator.id }),
+    queryFn: () => getLegacyBusRouteEntity().filter({ operator_id: operator.id }),
     enabled: !!operator
   });
 
   const { data: vehicles = [] } = useQuery({
     queryKey: ['offline-vehicles', operator?.id],
-    queryFn: () => base44.entities.Vehicle.filter({ operator_id: operator.id }),
+    queryFn: () => getLegacyVehicleEntity().filter({ operator_id: operator.id }),
     enabled: !!operator
   });
 
   const { data: templates = [] } = useQuery({
     queryKey: ['offline-templates', operator?.id],
-    queryFn: () => base44.entities.SeatMapTemplate.filter({ operator_id: operator.id }),
+    queryFn: () => getLegacySeatMapTemplateEntity().filter({ operator_id: operator.id }),
     enabled: !!operator
   });
 
   const { data: seatInventory = [] } = useQuery({
     queryKey: ['offline-seat-inventory', selectedTrip?.id],
-    queryFn: () => base44.entities.TripSeatInventory.filter({ trip_id: selectedTrip.id }),
+    queryFn: () => getLegacyTripSeatInventoryEntity().filter({ trip_id: selectedTrip.id }),
     enabled: !!selectedTrip,
     refetchInterval: 3000
   });
@@ -104,7 +145,7 @@ export default function VendorOfflineSales() {
         return { allocated: 0, sold: 0, available: 0 };
       }
 
-      const response = await base44.functions.invoke('checkSeatAllocation', {
+      const response = await checkSeatAllocation({
         trip_id: selectedTrip.id,
         seat_codes: [],
         channel: 'branch',
@@ -132,7 +173,7 @@ export default function VendorOfflineSales() {
 
       // Check branch allocation
       if (agentSession.sessionBranch) {
-        const allocationCheck = await base44.functions.invoke('checkSeatAllocation', {
+        const allocationCheck = await checkSeatAllocation({
           trip_id: selectedTrip.id,
           seat_codes: selectedSeats,
           channel: 'branch',
@@ -157,7 +198,7 @@ export default function VendorOfflineSales() {
       }, 0);
 
       // Create offline sale
-      const sale = await base44.entities.OfflineSale.create({
+      const sale = await getLegacyOfflineSaleEntity().create({
         operator_id: operator.id,
         trip_id: selectedTrip.id,
         sold_by_user_id: user.email,
@@ -173,13 +214,13 @@ export default function VendorOfflineSales() {
       for (const seatCode of selectedSeats) {
         const seat = seatInventory.find(s => s.seat_code === seatCode);
         if (seat) {
-          await base44.entities.TripSeatInventory.update(seat.id, {
+          await getLegacyTripSeatInventoryEntity().update(seat.id, {
             seat_status: 'sold_offline',
             sold_by_branch_id: agentSession.sessionBranch?.id || null
           });
           
           // Create audit log
-          await base44.entities.AuditLog.create({
+          await getLegacyAuditLogEntity().create({
             actor_user_id: user.email,
             operator_id: operator.id,
             action_type: "seat_sold_offline",
@@ -204,12 +245,12 @@ export default function VendorOfflineSales() {
       // Save/update passenger profile if requested
       if (savePassenger) {
         if (selectedPassengerProfile) {
-          await base44.entities.PassengerProfile.update(selectedPassengerProfile.id, {
+          await getLegacyPassengerProfileEntity().update(selectedPassengerProfile.id, {
             name: passengerName,
             phone: passengerPhone
           });
         } else {
-          await base44.entities.PassengerProfile.create({
+          await getLegacyPassengerProfileEntity().create({
             operator_id: operator.id,
             name: passengerName,
             phone: passengerPhone
@@ -325,13 +366,13 @@ export default function VendorOfflineSales() {
     }
   }, [permissions.isAgent, agentSession.hasActiveSession]);
 
-  if (authChecked && !user) {
+  if (!loading && !user) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="p-8 rounded-xl bg-white/5 border border-white/10 text-center max-w-md">
           <h3 className="text-xl font-bold text-white mb-2">Sign In Required</h3>
           <p className="text-gray-400 text-sm mb-5">Sign in with your vendor account to access this page.</p>
-          <button onClick={() => base44.auth.redirectToLogin()} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+          <button onClick={navigateToLogin} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
             Sign In
           </button>
         </div>
