@@ -1,151 +1,339 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
-import { appParams } from '@/lib/app-params';
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { resolveCmlAccessState } from "@/lib/cmlAccessState";
+import {
+  isNonFatalOnboardingError,
+  loadOnboardingSnapshot,
+} from "@/features/cml-core/api/cmlOnboarding";
+import { supabase, supabaseConfigError } from "@/lib/supabaseClient";
 
-const AuthContext = createContext();
+const AuthContext = createContext(null);
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
-  const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(false);
-  const [authError, setAuthError] = useState(null);
-  const [appPublicSettings, setAppPublicSettings] = useState(null);
+const NON_FATAL_PROFILE_ERROR_CODES = new Set(["PGRST116", "42P01", "42501"]);
 
-  useEffect(() => {
-    bootstrapAuthState();
-  }, []);
+const normalizeSupabaseErrorMessage = (fallbackMessage, error) =>
+  error?.message || error?.error_description || fallbackMessage;
 
-  const clearAuthenticatedUser = () => {
-    setUser(null);
-    setIsAuthenticated(false);
-  };
+const isNonFatalProfileError = (error) =>
+  NON_FATAL_PROFILE_ERROR_CODES.has(error?.code) ||
+  error?.status === 401 ||
+  error?.status === 403;
 
-  const setAuthenticatedUser = (currentUser) => {
-    setUser(currentUser);
-    setIsAuthenticated(true);
-  };
+async function loadUserProfile(sessionUser) {
+  if (!supabase || !sessionUser) {
+    return { profile: null, warning: null };
+  }
 
-  const setUserNotRegisteredError = () => {
-    setAuthError({
-      type: 'user_not_registered',
-      message: 'User not registered for this app'
-    });
-  };
+  const profileQueries = [
+    () =>
+      supabase
+        .from("user_profiles")
+        .select("*")
+        .eq("supabase_auth_user_id", sessionUser.id)
+        .maybeSingle(),
+    () =>
+      sessionUser.email
+        ? supabase.from("user_profiles").select("*").eq("email", sessionUser.email).maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+  ];
 
-  const checkCurrentUserSession = async () => {
-    // Legacy Base44 auth compatibility: current session resolution still
-    // comes from the Base44 SDK until auth ownership moves to Supabase.
-    const authPromise = base44.auth.me();
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Auth check timed out')), 10000)
-    );
-
-    return Promise.race([authPromise, timeoutPromise]);
-  };
-
-  const handleCurrentUserError = (error) => {
-    console.warn('User auth check failed (user not logged in):', error?.message);
-    clearAuthenticatedUser();
-
-    // DON'T set authError for auth_required - just means user isn't logged in
-    // Only block for user_not_registered
-    if (error?.status === 403 && error?.data?.extra_data?.reason === 'user_not_registered') {
-      setUserNotRegisteredError();
-    }
-  };
-
-  const checkAppState = async () => {
-    try {
-      setAuthError(null);
-      setIsLoadingAuth(true);
-
-      if (appParams.token) {
-        try {
-          const currentUser = await checkCurrentUserSession();
-          setAuthenticatedUser(currentUser);
-        } catch (error) {
-          handleCurrentUserError(error);
-        }
-      } else {
-        // No token - user is simply not logged in. That's fine.
-        clearAuthenticatedUser();
+  for (const executeQuery of profileQueries) {
+    const result = await executeQuery();
+    if (result.error) {
+      if (isNonFatalProfileError(result.error)) {
+        return { profile: null, warning: result.error };
       }
+
+      throw result.error;
+    }
+
+    if (result.data) {
+      return { profile: result.data, warning: null };
+    }
+  }
+
+  return { profile: null, warning: null };
+}
+
+async function resolveAppOwnedState(sessionUser) {
+  const onboardingSnapshot = await loadOnboardingSnapshot(sessionUser);
+  let nextProfile = null;
+  let nextWarning = onboardingSnapshot.warning ?? null;
+
+  if (nextWarning) {
+    try {
+      const profileResult = await loadUserProfile(sessionUser);
+      nextProfile = profileResult.profile;
+      nextWarning = profileResult.warning ?? nextWarning;
+    } catch (profileError) {
+      if (isNonFatalOnboardingError(profileError)) {
+        nextWarning = nextWarning ?? profileError;
+      } else {
+        throw profileError;
+      }
+    }
+  }
+
+  return {
+    profile: nextProfile,
+    application: onboardingSnapshot.application,
+    vendor: onboardingSnapshot.vendor,
+    vendorStaff: onboardingSnapshot.vendorStaff,
+    vendorBranches: onboardingSnapshot.vendorBranches ?? [],
+    warning: nextWarning,
+    accessState: resolveCmlAccessState({
+      sessionUser,
+      profile: nextProfile,
+      application: onboardingSnapshot.application,
+      vendor: onboardingSnapshot.vendor,
+    }),
+  };
+}
+
+export function AuthProvider({ children }) {
+  const [session, setSession] = useState(null);
+  const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [application, setApplication] = useState(null);
+  const [vendor, setVendor] = useState(null);
+  const [vendorStaff, setVendorStaff] = useState(null);
+  const [vendorBranches, setVendorBranches] = useState([]);
+  const [accessState, setAccessState] = useState("public");
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const [authError, setAuthError] = useState(
+    supabaseConfigError ? { type: "config", message: supabaseConfigError } : null,
+  );
+  const [profileWarning, setProfileWarning] = useState(null);
+
+  const syncSessionState = async (nextSession) => {
+    setSession(nextSession);
+    setUser(nextSession?.user ?? null);
+    setProfile(null);
+    setApplication(null);
+    setVendor(null);
+    setVendorStaff(null);
+    setVendorBranches([]);
+    setProfileWarning(null);
+
+    if (!nextSession?.user) {
+      setAccessState("public");
+      setIsLoadingAuth(false);
+      return;
+    }
+
+    try {
+      const nextState = await resolveAppOwnedState(nextSession.user);
+      setProfile(nextState.profile);
+      setApplication(nextState.application);
+      setVendor(nextState.vendor);
+      setVendorStaff(nextState.vendorStaff);
+      setVendorBranches(nextState.vendorBranches);
+      setProfileWarning(nextState.warning);
+      setAccessState(nextState.accessState);
     } catch (error) {
-      console.error('Unexpected auth error:', error);
-      clearAuthenticatedUser();
+      setProfileWarning(error);
+      setAccessState(
+        resolveCmlAccessState({
+          sessionUser: nextSession.user,
+          profile: null,
+          application: null,
+          vendor: null,
+        }),
+      );
     } finally {
       setIsLoadingAuth(false);
-      setIsLoadingPublicSettings(false);
     }
   };
 
-  const bootstrapAuthState = () => {
-    // Future migration seam: make this provider the single auth owner
-    // backed by Supabase session state instead of Base44 bootstrap params.
-    checkAppState();
-  };
+  useEffect(() => {
+    if (!supabase) {
+      setIsLoadingAuth(false);
+      return undefined;
+    }
 
-  const clearCachedUserData = () => {
-    // Preserve current logout cache-clearing behavior exactly.
-    try {
-      const keysToRemove = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && (
-          key.startsWith('carrymatch-') ||
-          key.startsWith('offline-') ||
-          key.startsWith('pending-sync') ||
-          key.startsWith('driver-')
-        )) {
-          keysToRemove.push(key);
+    let isMounted = true;
+
+    const bootstrap = async () => {
+      setIsLoadingAuth(true);
+      setAuthError(null);
+
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (error) {
+          throw error;
         }
+
+        if (isMounted) {
+          await syncSessionState(data.session);
+        }
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        setAuthError({
+          type: "session",
+          message: normalizeSupabaseErrorMessage("Unable to load auth session.", error),
+        });
+        setSession(null);
+        setUser(null);
+        setProfile(null);
+        setApplication(null);
+        setVendor(null);
+        setVendorStaff(null);
+        setVendorBranches([]);
+        setAccessState("public");
+        setIsLoadingAuth(false);
       }
-      keysToRemove.forEach(key => localStorage.removeItem(key));
-    } catch (e) {
-      // localStorage may be unavailable
+    };
+
+    bootstrap();
+
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (!isMounted) {
+        return;
+      }
+
+      setAuthError(null);
+      setIsLoadingAuth(true);
+      void syncSessionState(nextSession);
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.subscription.unsubscribe();
+    };
+  }, []);
+
+  const signUp = async ({ email, password, options }) => {
+    if (!supabase) {
+      throw new Error(supabaseConfigError);
+    }
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options,
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  };
+
+  const signIn = async ({ email, password }) => {
+    if (!supabase) {
+      throw new Error(supabaseConfigError);
+    }
+
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  };
+
+  const signOut = async () => {
+    if (!supabase) {
+      throw new Error(supabaseConfigError);
+    }
+
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      throw error;
     }
   };
 
-  const logout = (shouldRedirect = true) => {
-    clearAuthenticatedUser();
-    clearCachedUserData();
+  const refreshAccessState = async () => {
+    if (!supabase) {
+      return;
+    }
 
-    if (shouldRedirect) {
-      base44.auth.logout(window.location.href);
-    } else {
-      base44.auth.logout();
+    setIsLoadingAuth(true);
+    const { data, error } = await supabase.auth.getSession();
+
+    if (error) {
+      setAuthError({
+        type: "session",
+        message: normalizeSupabaseErrorMessage("Unable to refresh auth session.", error),
+      });
+      setIsLoadingAuth(false);
+      return;
+    }
+
+    await syncSessionState(data.session);
+  };
+
+  const refreshOnboardingData = async () => {
+    if (!user) {
+      return;
+    }
+
+    try {
+      const nextState = await resolveAppOwnedState(user);
+      setProfile(nextState.profile);
+      setApplication(nextState.application);
+      setVendor(nextState.vendor);
+      setVendorStaff(nextState.vendorStaff);
+      setVendorBranches(nextState.vendorBranches);
+      setProfileWarning(nextState.warning);
+      setAccessState(nextState.accessState);
+    } catch (error) {
+      setProfileWarning(error);
     }
   };
 
-  const navigateToLogin = () => {
-    // Legacy Base44 auth compatibility: callers still rely on the SDK login redirect.
-    base44.auth.redirectToLogin(window.location.href);
-  };
-
-  const authContextValue = {
-    user,
-    isAuthenticated,
-    isLoadingAuth,
-    isLoadingPublicSettings,
-    authError,
-    appPublicSettings,
-    logout,
-    navigateToLogin,
-    checkAppState
-  };
-
-  return (
-    <AuthContext.Provider value={authContextValue}>
-      {children}
-    </AuthContext.Provider>
+  const contextValue = useMemo(
+    () => ({
+      session,
+      user,
+      profile,
+      application,
+      vendor,
+      vendorStaff,
+      vendorBranches,
+      accessState,
+      isAuthenticated: Boolean(session?.user),
+      isLoadingAuth,
+      isLoadingPublicSettings: false,
+      authError,
+      profileWarning,
+      appPublicSettings: null,
+      signUp,
+      signIn,
+      signOut,
+      refreshAccessState,
+      refreshOnboardingData,
+      checkAppState: refreshAccessState,
+    }),
+    [
+      session,
+      user,
+      profile,
+      application,
+      vendor,
+      vendorStaff,
+      vendorBranches,
+      accessState,
+      isLoadingAuth,
+      authError,
+      profileWarning,
+    ],
   );
-};
 
-export const useAuth = () => {
+  return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth() {
   const context = useContext(AuthContext);
+
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
+
   return context;
-};
+}

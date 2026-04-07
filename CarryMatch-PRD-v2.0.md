@@ -180,6 +180,8 @@ The person at the destination who receives the parcel. They want to know when so
 
 4\. Phase 1 Features: Vendor Logistics (CML)
 
+For the current build, Phase 1 CML is frozen to the launch-core slice only. The broader Phase 1 follow-on items in this PRD remain part of the roadmap, but they are not part of the first coding wave.
+
 4.1 Vendor Onboarding and Access Control
 
 +---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -255,7 +257,7 @@ The person at the destination who receives the parcel. They want to know when so
 
   Authenticated, subscription expired (grace period)   Full access for 3 days. Show prominent "Subscription expired" banner with renewal options.
 
-  Authenticated, subscription expired (past grace)     Downgraded to Free tier. Data preserved. Pro/Enterprise features locked.
+  Authenticated, subscription expired (past grace)     Downgraded to Free tier. Data preserved. Pro features locked.
 
   Vendor suspended by admin                            Show "Account suspended" page with support contact. Cannot access any data.
   ---------------------------------------------------- -------------------------------------------------------------------------------------------------------------
@@ -769,50 +771,52 @@ These features differentiate CarryMatch from generic freight software (GoFreight
 
   WhatsApp chatbot for tracking          Customers text "TRACK ABC123" to the vendor's WhatsApp and get instant status back. No app download required.                                                              Phase 2
 
-  Proof of delivery photos               Staff takes a photo at collection. Sender gets it via WhatsApp as confirmation.                                                                                            Phase 2
+  Proof of delivery photos               Staff takes a photo at collection. Sender gets it via WhatsApp as confirmation.                                                                                            Phase 1
   -------------------------------------- -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- -------------
 
 6\. Subscription Tiers and Pricing
 
-  ------------------------------ -------------------------- ------------------------------------------ ------------------------------
-  **Feature**                    **Free**                   **Pro (\$49/mo)**                          **Enterprise (\$149/mo)**
+For the Phase 1 CML launch, the commercial model is frozen to Free + Pro only.
 
-  Shipments per month            50                         Unlimited                                  Unlimited
+  ------------------------------ -------------------------- ------------------------------------------
+  **Feature**                    **Free**                   **Pro (\$49/mo)**
 
-  Customer lookup + CRM          Yes                        Yes                                        Yes
+  Shipments per month            50                         Unlimited
 
-  Quick Intake Form              Yes                        Yes                                        Yes
+  Customer lookup + CRM          Yes                        Yes
 
-  Batch management               Yes                        Yes                                        Yes
+  Quick Intake Form              Yes                        Yes
 
-  WhatsApp notifications         Yes (all triggers)         Yes (all triggers)                         Yes (all triggers)
+  Batch management               Yes                        Yes
 
-  Email fallback notifications   Yes                        Yes                                        Yes
+  WhatsApp notifications         Yes (all triggers)         Yes (all triggers)
 
-  Staff accounts                 1 (owner)                  Up to 5                                    Unlimited
+  Email fallback notifications   Yes                        Yes
 
-  Role-based access              No                         Yes (Owner/Admin/Staff)                    Yes + custom roles
+  Staff accounts                 1 (owner)                  Up to 5
 
-  Parcel photo documentation     No                         Yes (up to 4 per shipment)                 Yes
+  Role-based access              No                         Yes (Owner/Admin/Staff)
 
-  Shipping labels (printable)    No                         Yes (single + batch print, branded)        Yes + custom label templates
+  Parcel photo documentation     No                         Yes (up to 4 per shipment)
 
-  Self-service tracking page     Yes (CarryMatch branded)   Yes (vendor branded)                       Yes (full white-label)
+  Shipping labels (printable)    No                         Yes (single + batch print, branded)
 
-  Advanced reports + analytics   Basic (this month only)    Full history + export                      Full + scheduled reports
+  Self-service tracking page     Yes (CarryMatch branded)   Yes (vendor branded)
 
-  Insurance configuration        Default 2% only            Flat fee or %, custom rate + min premium   Custom + claims workflow
+  Advanced reports + analytics   Basic (this month only)    Full history + export
 
-  Branches / locations           1                          Up to 3                                    Unlimited
+  Insurance configuration        Default 2% only            Flat fee or %, custom rate + min premium
 
-  Customer import (CSV)          No                         Yes                                        Yes + API
+  Branches / locations           1                          Up to 3
 
-  Branded notifications          CarryMatch branding        Vendor branding                            Full white-label
+  Customer import (CSV)          No                         Yes
 
-  API access                     No                         No                                         Yes
+  Branded notifications          CarryMatch branding        Vendor branding
 
-  Priority support               Community                  Email + WhatsApp                           Dedicated account manager
-  ------------------------------ -------------------------- ------------------------------------------ ------------------------------
+  API access                     No                         No
+
+  Priority support               Community                  Email + WhatsApp
+  ------------------------------ -------------------------- ------------------------------------------
 
 Revenue model: Monthly SaaS subscription. No per-shipment fees. No cut of insurance, shipping fees, or any vendor revenue. CarryMatch earns ONLY from subscription fees. The platform is a tool --- vendors run their own business, set their own prices, and keep all their revenue.
 
@@ -841,7 +845,7 @@ Coupon code system details:
 
   Code generation    Super Admin or CML Admin generates codes in bulk or individually via admin panel
 
-  Plan binding       Each code is tied to a specific plan (Pro or Enterprise) and duration (1 month, 3 months, 6 months, 1 year)
+  Plan binding       Each code is tied to a specific launch plan (currently Pro) and duration (1 month, 3 months, 6 months, 1 year)
 
   Activation         Vendor enters code in Settings → Subscription. System validates and activates immediately.
 
@@ -875,7 +879,7 @@ This dual approach (Stripe + coupon) ensures CarryMatch can onboard vendors rega
 
   Subscription Billing     Stripe + Coupon Codes        Stripe for online card payments. Coupon code system for cash payments (prepaid activation codes).
 
-  Notifications            WhatsApp Business API        Primary channel. Via BSP (e.g. Twilio, 360dialog, Interakt)
+  Notifications            Meta Cloud API direct        Primary channel. Company-owned Meta Business Manager / WhatsApp Business Account for launch, one dedicated CarryMatch logistics number, Meta webhooks via Vercel API routes.
 
   Email Fallback           Resend / SendGrid            Automatic when WhatsApp fails
 
@@ -994,20 +998,20 @@ Language preference is stored on the Customer entity (preferred_language: "en" o
 
 -   RLS policies should enforce vendor data isolation at the database level. If RLS templates are insufficient, enforce at the application layer via hooks that inject vendor_id into every query.
 
--   All server-side logic (notifications, label generation, coupon validation) runs as Supabase Edge Functions.
+-   Most server-side logic (label generation, coupon validation, internal notification orchestration) runs as Supabase Edge Functions. Meta webhook ingress runs through Vercel API routes.
 
 -   Database schema changes are version-controlled and deployed via migrations (e.g. Supabase CLI or Prisma).
 
 -   Null query results must be defensively handled before property access to prevent runtime crashes.
 
--   WhatsApp integration via BSP webhook: shipment status change → Edge Function → BSP API → WhatsApp message
+-   WhatsApp integration uses Meta Cloud API direct: shipment status change -> server-side trigger -> Meta Cloud API -> WhatsApp message. Delivery receipts return through Meta webhooks handled in Vercel API routes.
 
 7.5 Key Entities
 
   ------------------- ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
   **Entity**          **Key Fields**
 
-  Vendor              id, user_id, email, company_name, status (pending/active/suspended), pricing_model (per_kg/flat_fee/manual), rate_per_kg, flat_fee_per_item, default_currency, ui_language (en/fr), insurance_mode (flat/percentage), insurance_rate, insurance_flat_fee, min_premium, whatsapp_business_number, default_origin, subscription_plan_id, logo_url, vendor_prefix
+  Vendor              id, user_id, email, company_name, status (pending/active/suspended), pricing_model (per_kg/flat_fee/manual), rate_per_kg, flat_fee_per_item, default_currency, ui_language (en/fr), insurance_mode (flat/percentage), insurance_rate, insurance_flat_fee, min_premium, default_origin, subscription_plan_id, logo_url, vendor_prefix
 
   VendorStaff         id, vendor_id, user_id, email, role (owner/admin/staff), status, branch_id
 
@@ -1127,17 +1131,19 @@ This is the most common area where AI coding tools will build something that doe
   ---------------------------------- ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
   **Component**                      **Specification**
 
-  BSP (Business Solution Provider)   Use Twilio or 360dialog. The BSP handles WhatsApp Business API approval, message sending, delivery receipts, and template management. Do NOT try to call the WhatsApp API directly.
+  Meta Cloud API direct              Use Meta Cloud API direct for Phase 1 CML. The launch setup uses a company-owned Meta Business Manager and WhatsApp Business Account with one dedicated CarryMatch logistics number for all vendors.
 
   Message templates                  All automated messages MUST use pre-approved WhatsApp message templates. WhatsApp requires template approval before sending. Template variables are injected at send time (e.g. {{1}} = tracking number, {{2}} = receiver name).
 
-  Trigger mechanism                  When a shipment status changes OR a batch status changes, a Supabase Edge Function (or database trigger + webhook) fires. This function: (1) queries affected recipients, (2) builds the message from template + variables, (3) calls the BSP API to send.
+  Trigger mechanism                  When a shipment status changes OR a batch status changes, a server-side function fires. This function: (1) queries affected recipients, (2) builds the message from template + variables, (3) calls the Meta Cloud API directly to send.
 
-  Delivery tracking                  BSP returns delivery status via webhook: sent → delivered → read → failed. Store in Notification entity.
+  Webhook handling                   Meta delivery events and status webhooks terminate in Vercel API routes. Store sent -> delivered -> read -> failed in the Notification entity.
+
+  Token strategy                     Use a permanent system user token from the start. Do NOT build the launch flow around temporary tokens.
 
   Fallback logic                     If WhatsApp send fails (returned error or no delivery after 5 min), automatically attempt email. If no email on file, create an alert in vendor's Issues dashboard.
 
-  Rate limiting                      WhatsApp has rate limits (varies by BSP tier). Batch notifications must be queued and sent with delays (e.g. 10 messages/second) to avoid throttling.
+  Rate limiting                      WhatsApp has rate limits. Batch notifications must be queued and sent with delays (e.g. 10 messages/second) to avoid throttling.
 
   Opt-in requirement                 WhatsApp requires user opt-in before sending messages. The intake form's WhatsApp number field serves as implicit opt-in. Store consent timestamp.
 
@@ -1431,9 +1437,9 @@ Online ticket sales platform for bus/transport agencies anywhere. Agencies manag
 
   UAT Complete           Now -- Week 2       Complete 31-case test plan, fix all critical bugs, stabilize intake form enhancements
 
-  Phase 1 Launch (PWA)   Week 2 -- Month 1   Vendor Logistics live as bilingual PWA (EN/FR): intake, batches, WhatsApp notifications, CRM, shipping labels, tracking pages. Stripe + coupon code subscription system. First 10 vendors onboarded.
+  Phase 1 Launch (PWA)   Week 2 -- Month 1   Vendor Logistics live as bilingual PWA (EN/FR), launch-core only: intake, batches, proof-photo collection, WhatsApp notifications, CRM, shipping labels, tracking pages. Free + Pro subscription system. First 10 vendors onboarded.
 
-  WhatsApp Integration   Month 1 -- 2        BSP integration for automated WhatsApp messaging. Self-service tracking via WhatsApp.
+  WhatsApp Integration   Month 1 -- 2        Meta Cloud API direct rollout for automated WhatsApp messaging, delivery-status tracking, and self-service tracking via WhatsApp.
 
   Growth + Iteration     Month 2 -- 3        50+ vendors onboarded. Iterate based on feedback. Add reports, closeout, claims. Multi-currency. Coupon agent/reseller program.
 
@@ -1481,7 +1487,7 @@ Online ticket sales platform for bus/transport agencies anywhere. Agencies manag
 
   WhatsApp API costs at scale         Medium       \~\$0.005--\$0.01 per message. At 100K messages/month = \$500--1000. Covered by subscription revenue.
 
-  WhatsApp Business API approval      Medium       Apply early. Use verified BSP. Have fallback (SMS/email) ready.
+  WhatsApp Business API approval      Medium       Apply early through the company-owned Meta Business Manager / WhatsApp Business Account. Use the dedicated CarryMatch logistics number. Have fallback email ready.
 
   Trust with informal operators       Medium       Start with community referrals. Show product in-person. Offer free migration from paper to digital.
 
@@ -1519,7 +1525,7 @@ Online ticket sales platform for bus/transport agencies anywhere. Agencies manag
 
   RLS                  Row Level Security --- Supabase database-level access control
 
-  BSP                  Business Solution Provider --- WhatsApp API integration partner
+  Meta Cloud API       Direct WhatsApp integration path used in Phase 1 CML
 
   WISMO                Where Is My Order --- customer inquiry about shipment status
 
