@@ -123,6 +123,11 @@ const translations = {
       active_vendor: "Active vendor",
       suspended_vendor: "Suspended vendor",
     },
+    permissions: {
+      restrictedSection: "Restricted section",
+      noFinancialAccess: "You do not have permission to view financial data. Contact your vendor owner for access.",
+      noSettingsAccess: "You do not have permission to edit settings. Contact your vendor owner for access.",
+    },
     errors: {
       title: "Something needs attention",
       signUpFailed: "We could not create your account.",
@@ -1307,6 +1312,11 @@ const translations = {
       setup_required: "Configuration requise",
       active_vendor: "Vendeur actif",
       suspended_vendor: "Vendeur suspendu",
+    },
+    permissions: {
+      restrictedSection: "Section restreinte",
+      noFinancialAccess: "Vous n'avez pas la permission de consulter les donnees financieres. Contactez le proprietaire du compte.",
+      noSettingsAccess: "Vous n'avez pas la permission de modifier les parametres. Contactez le proprietaire du compte.",
     },
     errors: {
       title: "Quelque chose demande votre attention",

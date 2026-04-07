@@ -23,6 +23,7 @@ import {
   removeShipmentFromBatch,
 } from "@/features/cml-core/api/cmlBatches";
 import { buildCountryOptions, resolveStoredCountryCode } from "@/features/cml-core/lib/countries";
+import { canViewFinancials, canRecordPayment } from "@/features/cml-core/lib/permissions";
 import { useAuth } from "@/lib/AuthContext";
 import { useI18n } from "@/lib/i18n";
 
@@ -232,7 +233,8 @@ function buildFallbackTimeline(shipment) {
 
 export default function ShipmentDetailPage() {
   const { shipmentId } = useParams();
-  const { vendor } = useAuth();
+  const { vendor, vendorStaff } = useAuth();
+  const staffRole = vendorStaff?.role ?? "staff";
   const { t, language } = useI18n();
   const [detail, setDetail] = useState({
     shipment: null,
@@ -926,6 +928,7 @@ export default function ShipmentDetailPage() {
           </div>
 
           <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+            {canViewFinancials(staffRole) ? (
             <Card className="border-slate-200 bg-white/95 shadow-lg">
               <CardHeader>
                 <CardTitle>{t("shipmentDetail.pricingSection")}</CardTitle>
@@ -1110,6 +1113,17 @@ export default function ShipmentDetailPage() {
                 </form>
               </CardContent>
             </Card>
+            ) : (
+            <Card className="border-slate-200 bg-white/95 shadow-lg">
+              <CardContent className="py-6">
+                <InlineNotice
+                  title={t("permissions.restrictedSection")}
+                  description={t("permissions.noFinancialAccess")}
+                  tone="neutral"
+                />
+              </CardContent>
+            </Card>
+            )}
 
             <Card className="border-slate-200 bg-white/95 shadow-lg">
               <CardHeader>

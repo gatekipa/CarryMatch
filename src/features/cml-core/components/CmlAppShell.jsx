@@ -24,9 +24,9 @@ const activeVendorNavigationItems = [
   { href: "/scan-update", labelKey: "nav.scanUpdate" },
   { href: "/batches", labelKey: "nav.batches" },
   { href: "/notifications/log", labelKey: "nav.notificationLog" },
-  { href: "/notifications/settings", labelKey: "nav.notificationSettings" },
-  { href: "/settings/company-profile", labelKey: "nav.companyProfile" },
-  { href: "/settings/branches", labelKey: "nav.branches" },
+  { href: "/notifications/settings", labelKey: "nav.notificationSettings", permCheck: canEditNotificationSettings },
+  { href: "/settings/company-profile", labelKey: "nav.companyProfile", permCheck: canEditSettings },
+  { href: "/settings/branches", labelKey: "nav.branches", permCheck: canManageBranches },
 ];
 
 function LanguageSwitcher() {
@@ -55,14 +55,21 @@ function LanguageSwitcher() {
 }
 
 export function CmlAppShell() {
-  const { isAuthenticated, signOut, accessState, authError, profileWarning } = useAuth();
+  const { isAuthenticated, signOut, accessState, authError, profileWarning, vendorStaff } = useAuth();
   const { t } = useI18n();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  const staffRole = vendorStaff?.role ?? "staff";
+
   const navigationItems =
     accessState === "active_vendor"
-      ? [...publicNavigationItems, ...activeVendorNavigationItems]
+      ? [
+          ...publicNavigationItems,
+          ...activeVendorNavigationItems.filter(
+            (item) => !item.permCheck || item.permCheck(staffRole),
+          ),
+        ]
       : publicNavigationItems;
 
   // Close mobile menu on route change

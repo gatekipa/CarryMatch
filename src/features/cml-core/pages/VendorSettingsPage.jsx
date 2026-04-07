@@ -19,6 +19,7 @@ import {
 import { InlineNotice } from "@/features/cml-core/components/CmlStateScreens";
 import { useAuth } from "@/lib/AuthContext";
 import { useI18n } from "@/lib/i18n";
+import { canEditSettings } from "@/features/cml-core/lib/permissions";
 
 const PRICING_MODE_OPTIONS = ["per_kg", "flat_fee", "manual"];
 const DEFAULT_CURRENCY_OPTIONS = ["USD", "XAF", "NGN", "GHS", "EUR", "GBP"];
@@ -44,7 +45,9 @@ function sanitizeDecimalInput(value) {
 
 export default function VendorSettingsPage() {
   const { t, language } = useI18n();
-  const { vendor, refreshOnboardingData } = useAuth();
+  const { vendor, vendorStaff, refreshOnboardingData } = useAuth();
+  const staffRole = vendorStaff?.role ?? "staff";
+  const canEdit = canEditSettings(staffRole);
   const countryOptions = useMemo(() => buildCountryOptions(language), [language]);
   const currencyOptions = useMemo(() => {
     const nextOptions = DEFAULT_CURRENCY_OPTIONS.map((currencyCode) => ({
@@ -227,6 +230,14 @@ export default function VendorSettingsPage() {
           {t("vendorSettings.description")}
         </p>
       </section>
+
+      {!canEdit ? (
+        <InlineNotice
+          title={t("permissions.restrictedSection")}
+          description={t("permissions.noSettingsAccess")}
+          tone="warning"
+        />
+      ) : null}
 
       {successMessage ? (
         <InlineNotice title={t("vendorSettings.successTitle")} description={successMessage} />
