@@ -1,4 +1,5 @@
 import { supabase, supabaseConfigError } from "@/lib/supabaseClient";
+import { toCents } from "@/features/cml-core/lib/currency";
 
 const NON_FATAL_SHIPMENT_ERROR_CODES = new Set(["PGRST116", "42P01", "42501"]);
 const TRACKING_CHARSET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
@@ -73,9 +74,10 @@ function normalizeCurrencyCode(value) {
   return /^[A-Z]{3}$/.test(normalizedValue) ? normalizedValue : DEFAULT_CURRENCY;
 }
 
+/** Normalize a money value to integer cents. */
 function normalizeMoneyAmount(value) {
   const numericValue = Number(value);
-  return Number.isFinite(numericValue) ? Number(numericValue.toFixed(2)) : 0;
+  return Number.isFinite(numericValue) ? Math.round(numericValue) : 0;
 }
 
 function normalizePaymentMethod(value) {
@@ -137,10 +139,11 @@ function buildShipmentPayload({
   form,
   trackingNumber,
 }) {
-  const basePrice = Number(form.basePrice);
-  const discountAmount = Number(form.discountAmount || 0);
-  const totalPrice = Math.max(basePrice - discountAmount, 0);
-  const amountPaid = form.paymentStatus === "paid" ? totalPrice : 0;
+  // Convert dollar inputs to integer cents for storage (PRD 7.6.10)
+  const basePriceCents = toCents(form.basePrice);
+  const discountAmountCents = toCents(form.discountAmount || 0);
+  const totalPriceCents = Math.max(basePriceCents - discountAmountCents, 0);
+  const amountPaidCents = form.paymentStatus === "paid" ? totalPriceCents : 0;
   const destinationCountry = normalizeCountryCode(
     destinationBranch?.country_code || form.destinationCountry,
   );
@@ -170,13 +173,13 @@ function buildShipmentPayload({
     quantity: Number.parseInt(form.quantity, 10),
     category: resolveShipmentCategory(form),
     currency_code: normalizeCurrencyCode(form.currencyCode || vendor.default_currency),
-    base_price: basePrice,
-    discount_amount: discountAmount,
-    total_price: totalPrice,
-    amount_paid: amountPaid,
+    base_price: basePriceCents,
+    discount_amount: discountAmountCents,
+    total_price: totalPriceCents,
+    amount_paid: amountPaidCents,
     payment_method: null,
     payment_note: null,
-    payment_status: deriveShipmentPaymentStatus(totalPrice, amountPaid),
+    payment_status: deriveShipmentPaymentStatus(totalPriceCents, amountPaidCents),
     reference_note: form.referenceNote.trim() || null,
     status: "pending",
   };
@@ -546,14 +549,15 @@ export async function updateVendorShipmentPayment({
     throw new Error("The shipment could not be found for this vendor.");
   }
 
+  // total_price is already in cents from DB; convert dollar input to cents
   const normalizedTotalPrice = normalizeMoneyAmount(shipment.total_price);
-  const normalizedAmountPaid = normalizeMoneyAmount(amountPaid);
+  const normalizedAmountPaid = toCents(amountPaid);
 
   if (normalizedAmountPaid < 0) {
     throw new Error("Payment amount cannot be negative.");
   }
 
-  if (normalizedAmountPaid > normalizedTotalPrice + 0.0001) {
+  if (normalizedAmountPaid > normalizedTotalPrice + 1) {
     throw new Error("Payment amount cannot be greater than the shipment total.");
   }
 

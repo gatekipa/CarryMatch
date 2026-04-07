@@ -1,5 +1,6 @@
 import { supabase, supabaseConfigError } from "@/lib/supabaseClient";
 import { resolveStoredCountryCode } from "@/features/cml-core/lib/countries";
+import { toCents } from "@/features/cml-core/lib/currency";
 
 const NON_FATAL_ONBOARDING_ERROR_CODES = new Set(["PGRST116", "42P01", "42501"]);
 
@@ -84,8 +85,8 @@ const buildVendorProfilePayload = ({ form, preferredLanguage }) => ({
   default_origin_country: form.defaultOriginCountry.trim(),
   default_origin_city: form.defaultOriginCity.trim(),
   pricing_model: form.pricingModel,
-  rate_per_kg: toNullableNumber(form.ratePerKg),
-  flat_fee_per_item: toNullableNumber(form.flatFeePerItem),
+  rate_per_kg: form.ratePerKg != null && form.ratePerKg !== "" ? toCents(form.ratePerKg) : null,
+  flat_fee_per_item: form.flatFeePerItem != null && form.flatFeePerItem !== "" ? toCents(form.flatFeePerItem) : null,
   default_currency: form.defaultCurrency.trim().toUpperCase(),
   preferred_language: preferredLanguage,
 });

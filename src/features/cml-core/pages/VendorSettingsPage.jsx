@@ -20,6 +20,7 @@ import { InlineNotice } from "@/features/cml-core/components/CmlStateScreens";
 import { useAuth } from "@/lib/AuthContext";
 import { useI18n } from "@/lib/i18n";
 import { canEditSettings } from "@/features/cml-core/lib/permissions";
+import { fromCents } from "@/features/cml-core/lib/currency";
 
 const PRICING_MODE_OPTIONS = ["per_kg", "flat_fee", "manual"];
 const DEFAULT_CURRENCY_OPTIONS = ["USD", "XAF", "NGN", "GHS", "EUR", "GBP"];
@@ -98,11 +99,11 @@ export default function VendorSettingsPage() {
       ratePerKg:
         vendor?.rate_per_kg === null || vendor?.rate_per_kg === undefined
           ? current.ratePerKg
-          : String(vendor.rate_per_kg),
+          : String(fromCents(vendor.rate_per_kg)),
       flatFeePerItem:
         vendor?.flat_fee_per_item === null || vendor?.flat_fee_per_item === undefined
           ? current.flatFeePerItem
-          : String(vendor.flat_fee_per_item),
+          : String(fromCents(vendor.flat_fee_per_item)),
       defaultCurrency: vendor?.default_currency ?? current.defaultCurrency,
     }));
   }, [vendor]);

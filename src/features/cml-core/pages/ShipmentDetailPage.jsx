@@ -24,6 +24,7 @@ import {
 } from "@/features/cml-core/api/cmlBatches";
 import { buildCountryOptions, resolveStoredCountryCode } from "@/features/cml-core/lib/countries";
 import { canViewFinancials, canRecordPayment } from "@/features/cml-core/lib/permissions";
+import { fromCents } from "@/features/cml-core/lib/currency";
 import { useAuth } from "@/lib/AuthContext";
 import { useI18n } from "@/lib/i18n";
 
@@ -428,20 +429,22 @@ export default function ShipmentDetailPage() {
   const linkedBatch = detail.batch;
   const statusHistory = detail.statusHistory?.length > 0 ? detail.statusHistory : buildFallbackTimeline(shipment);
   const currencyCode = normalizeCurrencyCode(shipment?.currency_code);
-  const totalPriceAmount = normalizeMoneyAmount(shipment?.total_price);
-  const currentAmountPaidValue = normalizeMoneyAmount(shipment?.amount_paid);
-  const currentAmountDueValue = calculateAmountDue(totalPriceAmount, currentAmountPaidValue);
-  const draftAmountPaidValue = Number.isFinite(Number(paymentForm.amountPaid))
-    ? normalizeMoneyAmount(paymentForm.amountPaid)
+  // All DB prices are in cents. Convert to dollars for display only.
+  const totalPriceCents = normalizeMoneyAmount(shipment?.total_price);
+  const currentAmountPaidCents = normalizeMoneyAmount(shipment?.amount_paid);
+  const currentAmountDueCents = calculateAmountDue(totalPriceCents, currentAmountPaidCents);
+  // User types dollars in the payment form — convert to cents for comparison
+  const draftAmountPaidCents = Number.isFinite(Number(paymentForm.amountPaid))
+    ? Math.round(Number(paymentForm.amountPaid) * 100)
     : null;
   const draftPaymentStatus =
-    shipment && draftAmountPaidValue !== null
-      ? derivePaymentStatus(totalPriceAmount, draftAmountPaidValue)
+    shipment && draftAmountPaidCents !== null
+      ? derivePaymentStatus(totalPriceCents, draftAmountPaidCents)
       : shipment?.payment_status ?? "unpaid";
-  const draftAmountDueValue =
-    shipment && draftAmountPaidValue !== null
-      ? calculateAmountDue(totalPriceAmount, draftAmountPaidValue)
-      : currentAmountDueValue;
+  const draftAmountDueCents =
+    shipment && draftAmountPaidCents !== null
+      ? calculateAmountDue(totalPriceCents, draftAmountPaidCents)
+      : currentAmountDueCents;
   const operationalEta = linkedBatch?.eta_at || null;
   const isShipmentEligibleForBatchAssignment =
     Boolean(shipment && !shipment.batch_id && shipment.status === "pending");
@@ -608,8 +611,9 @@ export default function ShipmentDetailPage() {
   };
 
   const handleMarkFullyPaid = async () => {
+    // totalPriceCents is in cents; API expects dollars (converts to cents internally)
     await submitPaymentUpdate({
-      nextAmountPaid: totalPriceAmount,
+      nextAmountPaid: fromCents(totalPriceCents),
       actionKey: "mark-paid",
     });
   };
@@ -938,19 +942,19 @@ export default function ShipmentDetailPage() {
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-sm text-slate-600">{t("shipmentIntake.summaryBasePrice")}</span>
                   <span className="text-sm font-medium text-slate-950">
-                    {formatCurrencyAmount(shipment.base_price, currencyCode, language)}
+                    {formatCurrencyAmount(fromCents(shipment.base_price), currencyCode, language)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-sm text-slate-600">{t("shipmentIntake.summaryDiscount")}</span>
                   <span className="text-sm font-medium text-slate-950">
-                    {formatCurrencyAmount(shipment.discount_amount, currencyCode, language)}
+                    {formatCurrencyAmount(fromCents(shipment.discount_amount), currencyCode, language)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between gap-3 border-t border-slate-200 pt-3">
                   <span className="text-sm font-semibold text-slate-900">{t("shipmentIntake.summaryTotal")}</span>
                   <span className="text-sm font-semibold text-slate-950">
-                    {formatCurrencyAmount(shipment.total_price, currencyCode, language)}
+                    {formatCurrencyAmount(fromCents(shipment.total_price), currencyCode, language)}
                   </span>
                 </div>
 
@@ -958,14 +962,14 @@ export default function ShipmentDetailPage() {
                   <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
                     <DetailField
                       label={t("shipmentDetail.amountPaid")}
-                      value={formatCurrencyAmount(currentAmountPaidValue, currencyCode, language)}
+                      value={formatCurrencyAmount(fromCents(currentAmountPaidCents), currencyCode, language)}
                       emptyValue={t("shipmentDetail.notAvailable")}
                     />
                   </div>
                   <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
                     <DetailField
                       label={t("shipmentDetail.amountDue")}
-                      value={formatCurrencyAmount(currentAmountDueValue, currencyCode, language)}
+                      value={formatCurrencyAmount(fromCents(currentAmountDueCents), currencyCode, language)}
                       emptyValue={t("shipmentDetail.notAvailable")}
                     />
                   </div>
@@ -1089,7 +1093,7 @@ export default function ShipmentDetailPage() {
                         {t("shipmentDetail.amountDue")}
                       </p>
                       <p className="mt-2 text-sm font-medium text-slate-950">
-                        {formatCurrencyAmount(draftAmountDueValue, currencyCode, language)}
+                        {formatCurrencyAmount(fromCents(draftAmountDueCents), currencyCode, language)}
                       </p>
                       <p className="mt-2 text-xs text-slate-500">{t("shipmentDetail.amountDueHelp")}</p>
                     </div>

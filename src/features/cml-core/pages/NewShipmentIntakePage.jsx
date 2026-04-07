@@ -29,6 +29,7 @@ import {
   resolveStoredCountryCode,
 } from "@/features/cml-core/lib/countries";
 import { openShipmentLabel } from "@/features/cml-core/lib/shippingLabel";
+import { fromCents } from "@/features/cml-core/lib/currency";
 import { useAuth } from "@/lib/AuthContext";
 import { useI18n } from "@/lib/i18n";
 
@@ -156,8 +157,11 @@ function resolveAutoPricing(vendor, form) {
   const pricingModel = vendor?.pricing_model ?? "manual";
   const weightKg = parseNumberValue(form.weightKg);
   const quantity = Number.parseInt(form.quantity || "", 10);
-  const ratePerKg = parseNumberValue(vendor?.rate_per_kg);
-  const flatFeePerItem = parseNumberValue(vendor?.flat_fee_per_item);
+  // vendor.rate_per_kg and flat_fee_per_item are stored in cents — convert to dollars for display
+  const ratePerKgCents = parseNumberValue(vendor?.rate_per_kg);
+  const ratePerKg = ratePerKgCents != null ? fromCents(ratePerKgCents) : null;
+  const flatFeePerItemCents = parseNumberValue(vendor?.flat_fee_per_item);
+  const flatFeePerItem = flatFeePerItemCents != null ? fromCents(flatFeePerItemCents) : null;
 
   if (pricingModel === "per_kg") {
     if (!(ratePerKg > 0)) {
@@ -791,19 +795,19 @@ export default function NewShipmentIntakePage() {
                 <div className="flex items-center justify-between gap-3">
                   <span>{t("shipmentIntake.summaryBasePrice")}</span>
                   <span className="font-medium">
-                    {formatCurrencyAmount(createdShipment.base_price, createdShipmentCurrency, language)}
+                    {formatCurrencyAmount(fromCents(createdShipment.base_price), createdShipmentCurrency, language)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between gap-3">
                   <span>{t("shipmentIntake.summaryDiscount")}</span>
                   <span className="font-medium">
-                    {formatCurrencyAmount(createdShipment.discount_amount, createdShipmentCurrency, language)}
+                    {formatCurrencyAmount(fromCents(createdShipment.discount_amount), createdShipmentCurrency, language)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between gap-3 border-t border-emerald-200 pt-2 text-base font-semibold">
                   <span>{t("shipmentIntake.summaryTotal")}</span>
                   <span>
-                    {formatCurrencyAmount(createdShipment.total_price, createdShipmentCurrency, language)}
+                    {formatCurrencyAmount(fromCents(createdShipment.total_price), createdShipmentCurrency, language)}
                   </span>
                 </div>
               </div>
