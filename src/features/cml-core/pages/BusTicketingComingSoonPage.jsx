@@ -21,13 +21,13 @@ export default function BusTicketingComingSoonPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-8 py-12 text-center">
       <div className="flex justify-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50">
-          <Bus className="h-8 w-8 text-emerald-600" />
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-lighter">
+          <Bus className="h-8 w-8 text-brand" />
         </div>
       </div>
 
       <div>
-        <span className="mb-3 inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+        <span className="mb-3 inline-flex items-center rounded-full border border-green-200 bg-brand-lighter px-3 py-1 text-xs font-semibold text-brand">
           {t("busTickets.badge")}
         </span>
         <h1 className="mt-4 text-4xl font-bold tracking-tight text-slate-950">
@@ -46,7 +46,7 @@ export default function BusTicketingComingSoonPage() {
         ].map((feat, i) => (
           <Card key={i} className="border-slate-200 bg-white/95 text-left shadow-sm">
             <CardContent className="p-5">
-              <feat.icon className="mb-3 h-6 w-6 text-emerald-600" />
+              <feat.icon className="mb-3 h-6 w-6 text-brand" />
               <p className="text-sm font-semibold text-slate-900">{t(feat.titleKey)}</p>
               <p className="mt-1 text-xs leading-5 text-slate-500">{t(feat.descKey)}</p>
             </CardContent>
@@ -65,7 +65,7 @@ export default function BusTicketingComingSoonPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
             />
-            <Button type="submit">{t("busTickets.signupButton")}</Button>
+            <Button type="submit" className="bg-brand hover:bg-brand-hover text-white">{t("busTickets.signupButton")}</Button>
           </form>
         </CardContent>
       </Card>

@@ -24,6 +24,7 @@ import {
 import { InlineNotice } from "@/features/cml-core/components/CmlStateScreens";
 import { useAuth } from "@/lib/AuthContext";
 import { useI18n } from "@/lib/i18n";
+import { Package } from "lucide-react";
 
 const BUSINESS_TYPE_OPTIONS = [
   "Airline Luggage Consolidator",
@@ -215,9 +216,17 @@ export default function PartnerApplicationPage() {
 
   return (
     <div className="space-y-6">
-      <section className="space-y-3">
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-950">{t("apply.title")}</h1>
-        <p className="max-w-2xl text-base leading-7 text-slate-600">{t("apply.description")}</p>
+      <section className="mb-8 text-center">
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-lighter">
+          <Package className="h-7 w-7 text-brand" />
+        </div>
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900">{t("apply.heroTitle")}</h1>
+        <p className="mx-auto mt-2 max-w-lg text-base leading-7 text-slate-600">{t("apply.heroSubtitle")}</p>
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-4 text-sm text-slate-500">
+          <span>{"\u2713"} {t("apply.trust1")}</span>
+          <span>{"\u2713"} {t("apply.trust2")}</span>
+          <span>{"\u2713"} {t("apply.trust3")}</span>
+        </div>
       </section>
 
       {!isAuthenticated ? (
@@ -393,7 +402,7 @@ export default function PartnerApplicationPage() {
                     <Link to="/application-status">{t("apply.existingApplicationCta")}</Link>
                   </Button>
                 ) : (
-                  <Button type="submit" disabled={isSubmitting || authError?.type === "config"}>
+                  <Button type="submit" disabled={isSubmitting || authError?.type === "config"} className="bg-brand hover:bg-brand-hover text-white">
                     {isSubmitting
                       ? t("common.saving")
                       : isRejectedApplication

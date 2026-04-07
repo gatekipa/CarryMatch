@@ -50,6 +50,13 @@ module.exports = {
   				'4': 'hsl(var(--chart-4))',
   				'5': 'hsl(var(--chart-5))'
   			},
+  			brand: {
+  				DEFAULT: '#1B5E20',
+  				light: '#4CAF50',
+  				lighter: '#E8F5E9',
+  				dark: '#1B5E20',
+  				hover: '#2E7D32',
+  			},
   			sidebar: {
   				DEFAULT: 'hsl(var(--sidebar-background))',
   				foreground: 'hsl(var(--sidebar-foreground))',

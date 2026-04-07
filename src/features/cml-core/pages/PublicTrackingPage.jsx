@@ -213,7 +213,7 @@ export default function PublicTrackingPage() {
               autoComplete="off"
               spellCheck={false}
             />
-            <Button type="submit" disabled={!normalizeTrackingInput(trackingInput)}>
+            <Button type="submit" disabled={!normalizeTrackingInput(trackingInput)} className="bg-brand hover:bg-brand-hover text-white">
               {t("publicTracking.searchAction")}
             </Button>
           </form>

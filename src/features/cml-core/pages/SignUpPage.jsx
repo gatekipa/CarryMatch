@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { Package } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { InlineNotice } from "@/features/cml-core/components/CmlStateScreens";
 import { useAuth } from "@/lib/AuthContext";
 import { useI18n } from "@/lib/i18n";
-import { InlineNotice } from "@/features/cml-core/components/CmlStateScreens";
 
 export default function SignUpPage() {
   const { signUp, authError } = useAuth();
@@ -16,85 +17,69 @@ export default function SignUpPage() {
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
-  const handleChange = (event) => {
-    const { name, value } = event.target;
-    setForm((current) => ({ ...current, [name]: value }));
-  };
+  const handleChange = (e) => setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     setIsSubmitting(true);
     setErrorMessage("");
     setSuccessMessage("");
-
     try {
-      await signUp({
-        email: form.email,
+      const { error } = await signUp({
+        email: form.email.trim(),
         password: form.password,
-        options: {
-          data: {
-            preferred_language: language,
-          },
-        },
+        options: { data: { preferred_language: language } },
       });
-
+      if (error) throw error;
       setSuccessMessage(t("signup.successBody"));
-    } catch (error) {
-      setErrorMessage(error.message || t("errors.signUpFailed"));
+    } catch (err) {
+      setErrorMessage(err.message || t("errors.signUpFailed"));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="mx-auto w-full max-w-md">
-      <Card className="border-slate-200 bg-white/95 shadow-lg">
-        <CardHeader>
-          <CardTitle>{t("signup.title")}</CardTitle>
-          <CardDescription>{t("signup.description")}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {authError?.type === "config" ? (
-            <InlineNotice title={t("common.environmentWarning")} description={t("errors.missingConfig")} tone="warning" />
-          ) : null}
+    <div className="flex min-h-[60vh] items-center justify-center py-12">
+      <div className="w-full max-w-md space-y-6">
+        <div className="text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand">
+            <Package className="h-6 w-6 text-white" />
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">{t("signup.title")}</h1>
+          <p className="mt-1 text-sm text-slate-500">{t("signup.subtitle")}</p>
+        </div>
 
-          {successMessage ? <InlineNotice title={t("signup.successTitle")} description={successMessage} /> : null}
+        {authError?.type === "config" && <InlineNotice title={t("common.environmentWarning")} description={t("errors.missingConfig")} tone="warning" />}
+        {errorMessage && <InlineNotice title={t("errors.title")} description={errorMessage} tone="error" />}
+        {successMessage && <InlineNotice title={t("signup.successTitle")} description={successMessage} />}
 
-          {errorMessage ? <InlineNotice title={t("errors.title")} description={errorMessage} tone="error" /> : null}
+        <Card className="border-slate-200 shadow-lg">
+          <CardContent className="p-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">{t("signup.emailLabel")}</Label>
+                <Input id="email" name="email" type="email" required value={form.email} onChange={handleChange} placeholder={t("signup.emailPlaceholder")} className="h-11" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">{t("signup.passwordLabel")}</Label>
+                <Input id="password" name="password" type="password" required minLength={8} value={form.password} onChange={handleChange} placeholder={t("signup.passwordPlaceholder")} className="h-11" />
+                <p className="text-xs text-slate-500">{t("signup.passwordHelp")}</p>
+              </div>
+              <Button type="submit" disabled={isSubmitting} className="h-11 w-full bg-brand text-white hover:bg-brand-hover">
+                {isSubmitting ? t("common.saving") : t("signup.submitButton")}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
 
-          <form className="space-y-4" onSubmit={handleSubmit}>
-            <div className="space-y-2">
-              <Label htmlFor="signup-email">{t("common.email")}</Label>
-              <Input id="signup-email" name="email" type="email" value={form.email} onChange={handleChange} autoComplete="email" required />
-            </div>
+        <p className="text-center text-sm text-slate-500">
+          {t("signup.hasAccount")}{" "}
+          <Link to="/login" className="font-medium text-brand hover:underline">{t("signup.loginLink")}</Link>
+        </p>
 
-            <div className="space-y-2">
-              <Label htmlFor="signup-password">{t("common.password")}</Label>
-              <Input
-                id="signup-password"
-                name="password"
-                type="password"
-                value={form.password}
-                onChange={handleChange}
-                autoComplete="new-password"
-                minLength={8}
-                required
-              />
-            </div>
-
-            <Button className="w-full" type="submit" disabled={isSubmitting || authError?.type === "config"}>
-              {isSubmitting ? t("common.loading") : t("signup.submit")}
-            </Button>
-          </form>
-
-          <p className="text-sm text-slate-600">
-            {t("signup.existingAccount")}{" "}
-            <Link className="font-semibold text-slate-950 underline" to="/login">
-              {t("signup.signInLink")}
-            </Link>
-          </p>
-        </CardContent>
-      </Card>
+        <p className="text-center text-xs text-slate-400">{t("signup.socialProof")}</p>
+      </div>
     </div>
   );
 }
