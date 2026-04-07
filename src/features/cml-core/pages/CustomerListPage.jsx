@@ -6,6 +6,9 @@ import { Input } from "@/components/ui/input";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { Users } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { SkeletonTable } from "@/components/ui/SkeletonTable";
 import { BackToDashboardLink } from "@/features/cml-core/components/BackToDashboardLink";
 import { InlineNotice } from "@/features/cml-core/components/CmlStateScreens";
 import { listVendorCustomers } from "@/features/cml-core/api/cmlCustomers";
@@ -87,12 +90,13 @@ export default function CustomerListPage() {
       <Card className="border-slate-200 bg-white/95 shadow-lg">
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="px-6 py-12 text-center text-sm text-slate-500">{t("common.loadingShort")}</div>
+            <SkeletonTable columns={5} rows={5} />
           ) : customers.length === 0 ? (
-            <div className="px-6 py-12 text-center">
-              <p className="text-sm font-medium text-slate-700">{t("customerList.emptyTitle")}</p>
-              <p className="mt-1 text-sm text-slate-500">{t("customerList.emptyBody")}</p>
-            </div>
+            <EmptyState
+              icon={Users}
+              title={t("customerList.emptyTitle")}
+              description={t("customerList.emptyBody")}
+            />
           ) : (
             <div className="overflow-x-auto">
               <Table>

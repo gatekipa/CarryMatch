@@ -10,12 +10,15 @@ import {
   canEditSettings,
   canManageBranches,
   canEditNotificationSettings,
+  canManageStaff,
   canManageSubscription,
 } from "@/features/cml-core/lib/permissions";
 
 const publicNavigationItems = [
   { href: "/", labelKey: "nav.landing" },
   { href: "/pricing", labelKey: "nav.pricing" },
+  { href: "/p2p", labelKey: "nav.p2p", badge: "nav.comingSoon" },
+  { href: "/bus-tickets", labelKey: "nav.busTickets", badge: "nav.comingSoon" },
   { href: "/partners/apply", labelKey: "nav.apply" },
 ];
 
@@ -31,6 +34,7 @@ const activeVendorNavigationItems = [
   { href: "/settings/company-profile", labelKey: "nav.companyProfile", permCheck: canEditSettings },
   { href: "/settings/branches", labelKey: "nav.branches", permCheck: canManageBranches },
   { href: "/settings/subscription", labelKey: "nav.subscription", permCheck: canManageSubscription },
+  { href: "/settings/staff", labelKey: "nav.staff", permCheck: canManageStaff },
 ];
 
 function LanguageSwitcher() {
@@ -131,6 +135,11 @@ export function CmlAppShell() {
                         }
                       >
                         {t(item.labelKey)}
+                        {item.badge ? (
+                          <span className="ml-1.5 rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">
+                            {t(item.badge)}
+                          </span>
+                        ) : null}
                       </NavLink>
                     ))}
                   </nav>
@@ -183,6 +192,11 @@ export function CmlAppShell() {
                   }
                 >
                   {t(item.labelKey)}
+                  {item.badge ? (
+                    <span className="ml-1.5 rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">
+                      {t(item.badge)}
+                    </span>
+                  ) : null}
                 </NavLink>
               ))}
             </nav>

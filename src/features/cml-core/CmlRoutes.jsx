@@ -19,6 +19,9 @@ import PricingPage from "@/features/cml-core/pages/PricingPage";
 import PublicTrackingPage from "@/features/cml-core/pages/PublicTrackingPage";
 import ScanUpdatePage from "@/features/cml-core/pages/ScanUpdatePage";
 import SetupWizardPage from "@/features/cml-core/pages/SetupWizardPage";
+import StaffManagementPage from "@/features/cml-core/pages/StaffManagementPage";
+import P2PComingSoonPage from "@/features/cml-core/pages/P2PComingSoonPage";
+import BusTicketingComingSoonPage from "@/features/cml-core/pages/BusTicketingComingSoonPage";
 import SignUpPage from "@/features/cml-core/pages/SignUpPage";
 import ShipmentDetailPage from "@/features/cml-core/pages/ShipmentDetailPage";
 import VendorSettingsPage from "@/features/cml-core/pages/VendorSettingsPage";
@@ -121,6 +124,8 @@ export function CmlRoutes() {
           <Route path="pricing" element={<PricingPage />} />
           <Route path="track" element={<PublicTrackingPage />} />
           <Route path="track/:trackingNumber" element={<PublicTrackingPage />} />
+          <Route path="p2p" element={<P2PComingSoonPage />} />
+          <Route path="bus-tickets" element={<BusTicketingComingSoonPage />} />
           <Route path="partners">
             <Route path="apply" element={<PartnerApplicationRoute />} />
           </Route>
@@ -173,6 +178,7 @@ export function CmlRoutes() {
               <Route path="company-profile" element={<VendorSettingsPage />} />
               <Route path="branches" element={<BranchManagementPage />} />
               <Route path="subscription" element={<SubscriptionPage />} />
+              <Route path="staff" element={<StaffManagementPage />} />
             </Route>
           </Route>
 

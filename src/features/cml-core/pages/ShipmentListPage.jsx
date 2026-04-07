@@ -18,6 +18,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Package } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { SkeletonTable } from "@/components/ui/SkeletonTable";
 import { BackToDashboardLink } from "@/features/cml-core/components/BackToDashboardLink";
 import { InlineNotice } from "@/features/cml-core/components/CmlStateScreens";
 import { listVendorShipments } from "@/features/cml-core/api/cmlShipments";
@@ -196,14 +199,14 @@ export default function ShipmentListPage() {
       <Card className="border-slate-200 bg-white/95 shadow-lg">
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="px-6 py-12 text-center text-sm text-slate-500">
-              {t("common.loadingShort")}
-            </div>
+            <SkeletonTable columns={7} rows={5} />
           ) : shipments.length === 0 ? (
-            <div className="px-6 py-12 text-center">
-              <p className="text-sm font-medium text-slate-700">{t("shipmentList.emptyTitle")}</p>
-              <p className="mt-1 text-sm text-slate-500">{t("shipmentList.emptyBody")}</p>
-            </div>
+            <EmptyState
+              icon={Package}
+              title={t("shipmentList.emptyTitle")}
+              description={t("shipmentList.emptyBody")}
+              action={<Button asChild><Link to="/shipments/new">{t("shipmentList.newShipment")}</Link></Button>}
+            />
           ) : (
             <div className="overflow-x-auto">
               <Table>

@@ -5,6 +5,7 @@ import {
   loadOnboardingSnapshot,
 } from "@/features/cml-core/api/cmlOnboarding";
 import { loadAdminUser } from "@/features/cml-core/api/cmlAdmin";
+import { linkInvitedStaff } from "@/features/cml-core/api/cmlStaff";
 import { supabase, supabaseConfigError } from "@/lib/supabaseClient";
 
 const AuthContext = createContext(null);
@@ -57,6 +58,16 @@ async function loadUserProfile(sessionUser) {
 
 async function resolveAppOwnedState(sessionUser) {
   const onboardingSnapshot = await loadOnboardingSnapshot(sessionUser);
+
+  // Auto-link any pending staff invitations for this user's email
+  if (sessionUser.id && sessionUser.email) {
+    try {
+      await linkInvitedStaff(sessionUser.id, sessionUser.email);
+    } catch {
+      // Silently ignore — vendor_staff table may not be ready yet
+    }
+  }
+
   let nextProfile = null;
   let nextWarning = onboardingSnapshot.warning ?? null;
 

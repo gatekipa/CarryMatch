@@ -2,6 +2,9 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Boxes } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { SkeletonTable } from "@/components/ui/SkeletonTable";
 import { listVendorBatches } from "@/features/cml-core/api/cmlBatches";
 import { BackToDashboardLink } from "@/features/cml-core/components/BackToDashboardLink";
 import { InlineNotice } from "@/features/cml-core/components/CmlStateScreens";
@@ -186,7 +189,22 @@ export default function BatchListPage() {
 
       {isLoading ? (
         <Card className="border-slate-200 bg-white/95 shadow-lg">
-          <CardContent className="py-8 text-sm text-slate-600">{t("common.loading")}</CardContent>
+          <CardContent className="p-0">
+            <SkeletonTable columns={4} rows={5} />
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {!isLoading && !hasBatches && vendor ? (
+        <Card className="border-slate-200 bg-white/95 shadow-lg">
+          <CardContent className="p-0">
+            <EmptyState
+              icon={Boxes}
+              title={t("batches.emptyTitle")}
+              description={t("batches.emptyBody")}
+              action={<Button asChild><Link to="/batches/new">{t("batches.createFirstBatch")}</Link></Button>}
+            />
+          </CardContent>
         </Card>
       ) : null}
 

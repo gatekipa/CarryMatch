@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Printer, Tag, Lock } from "lucide-react";
 import {
   BATCH_STATUS_TRANSITIONS,
   addShipmentToBatch,
@@ -16,7 +17,11 @@ import {
   updateVendorBatchBasics,
 } from "@/features/cml-core/api/cmlBatches";
 import { BackToDashboardLink } from "@/features/cml-core/components/BackToDashboardLink";
+import { CollectionPhotoCapture } from "@/features/cml-core/components/CollectionPhotoCapture";
 import { InlineNotice } from "@/features/cml-core/components/CmlStateScreens";
+import { openBatchManifest } from "@/features/cml-core/lib/batchManifest";
+import { openBatchLabels } from "@/features/cml-core/lib/batchLabels";
+import { useSubscriptionGate } from "@/features/cml-core/lib/subscriptionGate";
 import { useAuth } from "@/lib/AuthContext";
 import { useI18n } from "@/lib/i18n";
 
@@ -230,6 +235,7 @@ export default function BatchDetailPage() {
   const isCreateMode = !batchId || batchId === "new";
   const { t, language } = useI18n();
   const { vendor } = useAuth();
+  const { canUseBatchPrint, canUsePhotoUpload } = useSubscriptionGate();
   const [batch, setBatch] = useState(null);
   const [batchShipments, setBatchShipments] = useState([]);
   const [pendingShipments, setPendingShipments] = useState([]);
@@ -622,6 +628,48 @@ export default function BatchDetailPage() {
               <Button asChild variant="outline">
                 <Link to="/batches/new">{t("batches.createBatch")}</Link>
               </Button>
+            ) : null}
+            {!isCreateMode && batchShipments.length > 0 && canUseBatchPrint ? (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() =>
+                    openBatchManifest({
+                      batchName: batch?.batch_name || "",
+                      etaAt: batch?.eta_at,
+                      shipments: batchShipments,
+                      vendorName: vendor?.company_name || "",
+                      t,
+                      language,
+                    })
+                  }
+                >
+                  <Printer className="mr-1.5 h-4 w-4" /> {t("batchManifest.printManifest")}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() =>
+                    openBatchLabels({
+                      shipments: batchShipments,
+                      vendor,
+                      destinationBranches: batchShipments
+                        .map((s) => s.destination_branch)
+                        .filter(Boolean),
+                      t,
+                    })
+                  }
+                >
+                  <Tag className="mr-1.5 h-4 w-4" /> {t("batchManifest.printLabels")}
+                </Button>
+              </>
+            ) : null}
+            {!isCreateMode && batchShipments.length > 0 && !canUseBatchPrint ? (
+              <div className="flex items-center gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-2">
+                <Lock className="h-4 w-4 text-slate-400" />
+                <p className="text-xs text-slate-500">{t("batchManifest.proRequired")}</p>
+              </div>
             ) : null}
           </div>
         </div>
@@ -1068,16 +1116,28 @@ export default function BatchDetailPage() {
                             COLLECTIBLE_SHIPMENT_STATUSES.includes(shipment.status);
 
                           return (
-                            <ShipmentRow
-                              key={shipment.id}
-                              shipment={shipment}
-                              t={t}
-                              tone="neutral"
-                              action={canMarkCollected ? () => handleMarkCollected(shipment.id) : undefined}
-                              actionLabel={t("batches.markCollected")}
-                              actionVariant="default"
-                              disabled={activeShipmentId === shipment.id}
-                            />
+                            <div key={shipment.id} className="space-y-3">
+                              <ShipmentRow
+                                shipment={shipment}
+                                t={t}
+                                tone="neutral"
+                                action={canMarkCollected ? () => handleMarkCollected(shipment.id) : undefined}
+                                actionLabel={t("batches.markCollected")}
+                                actionVariant="default"
+                                disabled={activeShipmentId === shipment.id}
+                              />
+                              {canMarkCollected ? (
+                                <div className="ml-4">
+                                  <CollectionPhotoCapture
+                                    vendorId={vendor?.id}
+                                    shipmentId={shipment.id}
+                                    existingPhotoUrl={shipment.collection_photo_url}
+                                    canUsePhotoUpload={canUsePhotoUpload}
+                                    onPhotoUploaded={() => refreshBatchDetail()}
+                                  />
+                                </div>
+                              ) : null}
+                            </div>
                           );
                         })
                       )}
