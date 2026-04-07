@@ -10,6 +10,7 @@ import {
   canEditSettings,
   canManageBranches,
   canEditNotificationSettings,
+  canManageSubscription,
 } from "@/features/cml-core/lib/permissions";
 
 const publicNavigationItems = [
@@ -20,13 +21,16 @@ const publicNavigationItems = [
 
 const activeVendorNavigationItems = [
   { href: "/dashboard", labelKey: "nav.dashboard" },
+  { href: "/shipments", labelKey: "nav.shipments" },
   { href: "/shipments/new", labelKey: "nav.newShipment" },
   { href: "/scan-update", labelKey: "nav.scanUpdate" },
   { href: "/batches", labelKey: "nav.batches" },
+  { href: "/customers", labelKey: "nav.customers" },
   { href: "/notifications/log", labelKey: "nav.notificationLog" },
   { href: "/notifications/settings", labelKey: "nav.notificationSettings", permCheck: canEditNotificationSettings },
   { href: "/settings/company-profile", labelKey: "nav.companyProfile", permCheck: canEditSettings },
   { href: "/settings/branches", labelKey: "nav.branches", permCheck: canManageBranches },
+  { href: "/settings/subscription", labelKey: "nav.subscription", permCheck: canManageSubscription },
 ];
 
 function LanguageSwitcher() {
@@ -55,12 +59,16 @@ function LanguageSwitcher() {
 }
 
 export function CmlAppShell() {
-  const { isAuthenticated, signOut, accessState, authError, profileWarning, vendorStaff } = useAuth();
+  const { isAuthenticated, signOut, accessState, authError, profileWarning, vendorStaff, adminUser } = useAuth();
   const { t } = useI18n();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const staffRole = vendorStaff?.role ?? "staff";
+
+  const adminNavigationItems = adminUser
+    ? [{ href: "/admin", labelKey: "nav.admin" }]
+    : [];
 
   const navigationItems =
     accessState === "active_vendor"
@@ -69,8 +77,9 @@ export function CmlAppShell() {
           ...activeVendorNavigationItems.filter(
             (item) => !item.permCheck || item.permCheck(staffRole),
           ),
+          ...adminNavigationItems,
         ]
-      : publicNavigationItems;
+      : [...publicNavigationItems, ...adminNavigationItems];
 
   // Close mobile menu on route change
   useEffect(() => {

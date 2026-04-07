@@ -4,6 +4,7 @@ import {
   isNonFatalOnboardingError,
   loadOnboardingSnapshot,
 } from "@/features/cml-core/api/cmlOnboarding";
+import { loadAdminUser } from "@/features/cml-core/api/cmlAdmin";
 import { supabase, supabaseConfigError } from "@/lib/supabaseClient";
 
 const AuthContext = createContext(null);
@@ -73,12 +74,21 @@ async function resolveAppOwnedState(sessionUser) {
     }
   }
 
+  // Load admin user record (non-fatal if missing or table not ready)
+  let nextAdminUser = null;
+  try {
+    nextAdminUser = await loadAdminUser(sessionUser.id);
+  } catch {
+    // Silently ignore — admin_users table may not exist yet
+  }
+
   return {
     profile: nextProfile,
     application: onboardingSnapshot.application,
     vendor: onboardingSnapshot.vendor,
     vendorStaff: onboardingSnapshot.vendorStaff,
     vendorBranches: onboardingSnapshot.vendorBranches ?? [],
+    adminUser: nextAdminUser,
     warning: nextWarning,
     accessState: resolveCmlAccessState({
       sessionUser,
@@ -97,6 +107,7 @@ export function AuthProvider({ children }) {
   const [vendor, setVendor] = useState(null);
   const [vendorStaff, setVendorStaff] = useState(null);
   const [vendorBranches, setVendorBranches] = useState([]);
+  const [adminUser, setAdminUser] = useState(null);
   const [accessState, setAccessState] = useState("public");
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [authError, setAuthError] = useState(
@@ -112,6 +123,7 @@ export function AuthProvider({ children }) {
     setVendor(null);
     setVendorStaff(null);
     setVendorBranches([]);
+    setAdminUser(null);
     setProfileWarning(null);
 
     if (!nextSession?.user) {
@@ -127,6 +139,7 @@ export function AuthProvider({ children }) {
       setVendor(nextState.vendor);
       setVendorStaff(nextState.vendorStaff);
       setVendorBranches(nextState.vendorBranches);
+      setAdminUser(nextState.adminUser);
       setProfileWarning(nextState.warning);
       setAccessState(nextState.accessState);
     } catch (error) {
@@ -181,6 +194,7 @@ export function AuthProvider({ children }) {
         setVendor(null);
         setVendorStaff(null);
         setVendorBranches([]);
+        setAdminUser(null);
         setAccessState("public");
         setIsLoadingAuth(false);
       }
@@ -280,6 +294,7 @@ export function AuthProvider({ children }) {
       setVendor(nextState.vendor);
       setVendorStaff(nextState.vendorStaff);
       setVendorBranches(nextState.vendorBranches);
+      setAdminUser(nextState.adminUser);
       setProfileWarning(nextState.warning);
       setAccessState(nextState.accessState);
     } catch (error) {
@@ -296,6 +311,7 @@ export function AuthProvider({ children }) {
       vendor,
       vendorStaff,
       vendorBranches,
+      adminUser,
       accessState,
       isAuthenticated: Boolean(session?.user),
       isLoadingAuth,
@@ -318,6 +334,7 @@ export function AuthProvider({ children }) {
       vendor,
       vendorStaff,
       vendorBranches,
+      adminUser,
       accessState,
       isLoadingAuth,
       authError,

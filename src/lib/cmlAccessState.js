@@ -29,6 +29,10 @@ const normalizeApplicationStatus = (value) => {
     return "pending";
   }
 
+  if (normalized === "info_requested") {
+    return "info_requested";
+  }
+
   if (["rejected", "declined"].includes(normalized)) {
     return "rejected";
   }
@@ -103,7 +107,7 @@ export const resolveCmlAccessStateFromRecords = ({ sessionUser, application, ven
 
   const applicationStatus = normalizeApplicationStatus(application?.status);
 
-  if (applicationStatus === "pending") {
+  if (applicationStatus === "pending" || applicationStatus === "info_requested") {
     return ACCESS_STATES.APPLICATION_PENDING;
   }
 

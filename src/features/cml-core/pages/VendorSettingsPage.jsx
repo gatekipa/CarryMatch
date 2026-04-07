@@ -449,7 +449,7 @@ export default function VendorSettingsPage() {
             </div>
 
             <div className="flex justify-end">
-              <Button type="submit" disabled={isSubmitting || !vendor}>
+              <Button type="submit" disabled={isSubmitting || !vendor || !canEdit}>
                 {isSubmitting ? t("common.saving") : t("vendorSettings.submit")}
               </Button>
             </div>

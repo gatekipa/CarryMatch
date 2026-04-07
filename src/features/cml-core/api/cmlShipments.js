@@ -292,6 +292,51 @@ export async function listVendorDestinationBranches(vendorId) {
   return data ?? [];
 }
 
+export async function listVendorShipments(vendorId, options = {}) {
+  if (!supabase) throw new Error(supabaseConfigError);
+  if (!vendorId) throw new Error("Vendor ID is required.");
+
+  const {
+    search = "",
+    statusFilter = "",
+    paymentFilter = "",
+    sortBy = "created_at",
+    sortDir = "desc",
+    page = 1,
+    pageSize = 20,
+  } = options;
+
+  let query = supabase
+    .from("vendor_shipments")
+    .select("*", { count: "exact" })
+    .eq("vendor_id", vendorId);
+
+  if (search.trim()) {
+    const s = search.trim();
+    query = query.or(
+      `tracking_number.ilike.%${s}%,sender_name.ilike.%${s}%,receiver_name.ilike.%${s}%,sender_phone.ilike.%${s}%,receiver_phone.ilike.%${s}%`,
+    );
+  }
+
+  if (statusFilter) query = query.eq("status", statusFilter);
+  if (paymentFilter) query = query.eq("payment_status", paymentFilter);
+
+  const validSortColumns = new Set(["created_at", "status", "tracking_number", "total_price"]);
+  const safeSortBy = validSortColumns.has(sortBy) ? sortBy : "created_at";
+  const safeSortDir = sortDir === "asc";
+
+  query = query.order(safeSortBy, { ascending: safeSortDir });
+
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+  query = query.range(from, to);
+
+  const { data, error, count } = await query;
+  if (error) throw error;
+
+  return { shipments: data ?? [], totalCount: count ?? 0 };
+}
+
 export async function createVendorShipment({ vendor, form }) {
   if (!supabase) {
     throw new Error(supabaseConfigError);

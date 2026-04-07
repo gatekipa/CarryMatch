@@ -6,9 +6,12 @@ import ApplicationStatusPage from "@/features/cml-core/pages/ApplicationStatusPa
 import BatchDetailPage from "@/features/cml-core/pages/BatchDetailPage";
 import BatchListPage from "@/features/cml-core/pages/BatchListPage";
 import BranchManagementPage from "@/features/cml-core/pages/BranchManagementPage";
+import CustomerDetailPage from "@/features/cml-core/pages/CustomerDetailPage";
+import CustomerListPage from "@/features/cml-core/pages/CustomerListPage";
 import LandingPage from "@/features/cml-core/pages/LandingPage";
 import LoginPage from "@/features/cml-core/pages/LoginPage";
 import NewShipmentIntakePage from "@/features/cml-core/pages/NewShipmentIntakePage";
+import ShipmentListPage from "@/features/cml-core/pages/ShipmentListPage";
 import NotificationLogPage from "@/features/cml-core/pages/NotificationLogPage";
 import NotificationSettingsPage from "@/features/cml-core/pages/NotificationSettingsPage";
 import PartnerApplicationPage from "@/features/cml-core/pages/PartnerApplicationPage";
@@ -20,6 +23,8 @@ import SignUpPage from "@/features/cml-core/pages/SignUpPage";
 import ShipmentDetailPage from "@/features/cml-core/pages/ShipmentDetailPage";
 import VendorSettingsPage from "@/features/cml-core/pages/VendorSettingsPage";
 import VendorDashboardPage from "@/features/cml-core/pages/VendorDashboardPage";
+import AdminDashboardPage from "@/features/cml-core/pages/AdminDashboardPage";
+import SubscriptionPage from "@/features/cml-core/pages/SubscriptionPage";
 import { ACCESS_STATES, getDefaultRouteForAccessState } from "@/lib/cmlAccessState";
 import { useAuth } from "@/lib/AuthContext";
 import { useI18n } from "@/lib/i18n";
@@ -84,6 +89,24 @@ function PartnerApplicationRoute() {
   return <Navigate replace to={getDefaultRouteForAccessState(accessState)} />;
 }
 
+function AdminProtectedRoute() {
+  const location = useLocation();
+  const { isLoadingAuth, isAuthenticated, adminUser } = useAuth();
+  const { t } = useI18n();
+
+  if (isLoadingAuth) return <FullscreenLoader />;
+
+  if (!isAuthenticated) {
+    return <Navigate replace to="/login" state={{ from: location.pathname }} />;
+  }
+
+  if (!adminUser) {
+    return <FullscreenError title={t("admin.noAccessTitle")} description={t("admin.noAccessBody")} />;
+  }
+
+  return <Outlet />;
+}
+
 function NotFoundRoute() {
   const { t } = useI18n();
   return <FullscreenError title={t("notFound.title")} description={t("notFound.body")} />;
@@ -133,8 +156,13 @@ export function CmlRoutes() {
               <Route path=":batchId" element={<BatchDetailPage />} />
             </Route>
             <Route path="shipments">
+              <Route index element={<ShipmentListPage />} />
               <Route path="new" element={<NewShipmentIntakePage />} />
               <Route path=":shipmentId" element={<ShipmentDetailPage />} />
+            </Route>
+            <Route path="customers">
+              <Route index element={<CustomerListPage />} />
+              <Route path=":customerId" element={<CustomerDetailPage />} />
             </Route>
             <Route path="scan-update" element={<ScanUpdatePage />} />
             <Route path="notifications">
@@ -144,7 +172,12 @@ export function CmlRoutes() {
             <Route path="settings">
               <Route path="company-profile" element={<VendorSettingsPage />} />
               <Route path="branches" element={<BranchManagementPage />} />
+              <Route path="subscription" element={<SubscriptionPage />} />
             </Route>
+          </Route>
+
+          <Route element={<AdminProtectedRoute />}>
+            <Route path="admin" element={<AdminDashboardPage />} />
           </Route>
 
           <Route path="*" element={<NotFoundRoute />} />
